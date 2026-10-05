@@ -4,8 +4,8 @@ Date : 2026-10-05. Nom : **Folioflash** — repo `CamiJi/folioflash`.
 Langues produit : FR + EN au lancement, autres langues ensuite.
 Décisions actées : hébergement sur le serveur personnel au départ ; chaque créateur
 garde et fournit son propre nom de domaine ; Folioflash ne vend, n'achète ni ne
-transfère de domaines ; Stripe pour publication et consommation IA ; prix beta
-au coût réel, montant exact à recalibrer après mesures. Interface Folioflash
+transfère de domaines ; Stripe pour publication et crédits IA ; crédits facturés
+au coût réel des tokens plus une petite marge, montant exact à recalibrer après mesures. Interface Folioflash
 inspirée de la charte Nestor le Groom ; les portfolios clients ont leur propre
 direction artistique, proposée par le LLM si le brief ne précise pas de style.
 
@@ -16,7 +16,7 @@ Générateur de portfolio **ultra-rapide, ultra-léger, pas cher** :
 1. Le créateur s'inscrit, écrit ou dicte son brief, ajoute éventuellement ses images et liens.
 2. Folioflash génère une V1 Astro dans une prévisualisation Studio (pas de sous-domaine client Folioflash).
 3. Après validation, le créateur paie par Stripe et connecte un domaine qu'il possède déjà.
-4. Le portfolio est servi depuis le serveur personnel de Camille ; chaque modification IA est chiffrée avant lancement et débitée par Stripe selon le coût réel mesuré.
+4. Le portfolio est servi depuis le serveur personnel de Camille ; chaque modification post-V1 passe par un prompt et des crédits payants.
 
 Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un portfolio Astro statique, rapide et léger, généré par prompt, sans éditeur complexe. Les domaines restent la propriété des clients. L'hébergement est d'abord mutualisé sur le serveur personnel, avec une limite de capacité pilote.
 
@@ -30,12 +30,15 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 
 ## 3. Parcours utilisateur
 
-### 3.1 Découverte → V1 gratuite
+### 3.1 Découverte → profil → V1 d'essai
 1. Landing (FR/EN) + galerie d'exemples réels (potes en gratuit).
-2. Signup minimal (email + OAuth GitHub/Google en M2).
-3. Studio : prompt libre texte ou voix, champs structurés et dépôt optionnel d'images.
-4. Clic « Générer » → job IA → aperçu privé dans le Studio, avec style proposé à partir du métier, des projets et du brief si aucun style n'est demandé.
-5. V1 limitée à un template Astro adaptable ; aucune URL cliente en `*.folioflash.*`. La preview n'est pas le domaine public final.
+2. Connexion simplifiée par lien magique email.
+3. L'utilisateur peut fournir son URL LinkedIn comme référence, puis coller les informations de son profil ou téléverser un document qu'il fournit lui-même. Folioflash extrait un brouillon structuré ; le membre le relit et confirme avant génération.
+4. Studio : prompt libre texte/voix, champs structurés, dépôt optionnel d'images.
+5. Clic « Générer » → job IA → aperçu privé dans le Studio, avec style proposé à partir du métier, des projets et du brief si aucun style n'est demandé.
+6. V1 d'essai limitée à un template Astro adaptable ; aucune URL cliente en `*.folioflash.*`. La preview n'est pas le domaine public final.
+
+**LinkedIn :** aucune lecture automatique/scraping de l'URL en V1. L'API officielle en libre accès fournit principalement le nom, le headline, la photo et l'email du membre authentifié, pas l'ensemble de son historique professionnel ; l'accès est OAuth et certaines permissions nécessitent une approbation. V1 utilise les données volontairement fournies par le titulaire. Voir [permissions LinkedIn](https://learn.microsoft.com/en-us/linkedin/shared/authentication/getting-access) et [API Terms](https://www.linkedin.com/legal/l/api-terms-of-use), notamment la restriction de scraping/crawling (§3.1.24).
 
 ### 3.2 Déblocage payant (Stripe)
 1. CTA « Publier » → Checkout Stripe en mode test puis live.
@@ -43,11 +46,12 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 3. Le client entre un domaine qu'il possède. Il garde son registrar et ses identifiants ; il configure lui-même les DNS (A/AAAA vers le serveur, CNAME `www` si souhaité). Folioflash vérifie la propagation puis provisionne le routage et HTTPS.
 4. Folioflash ne propose pas l'achat, le renouvellement ni le transfert du domaine. Aucun frais de domaine n'est facturé par Folioflash.
 
-### 3.3 Itérations facturées au token
-1. Une fois publié : champ « modifie mon site » texte/voix + ajout éventuel d'images.
-2. Le LLM propose un aperçu de la modification ; après confirmation, build statique et publication sur le même domaine.
-3. Avant chaque génération, afficher une estimation en euros fondée sur le modèle, les tokens et les frais de paiement. Le client confirme avant consommation ; Stripe et la comptabilité des jobs doivent être idempotents.
-4. Historique de versions et rollback avant ouverture à grande échelle.
+### 3.3 Modifications par prompt et crédits payants
+1. Après la V1 initiale, toute modification du portfolio passe par un prompt texte/voix ; pas d'éditeur manuel.
+2. Chaque modification consomme des crédits payants, évalués au coût réel des tokens plus une petite marge ; estimation et nombre de crédits affichés avant confirmation.
+3. Les crédits sont prépayés/rechargés par Stripe afin d'éviter une micro-transaction Stripe par chaque appel IA. Stripe/webhooks et journal des crédits doivent être idempotents.
+4. Après confirmation, le LLM propose l'aperçu de modification puis le build statique publie sur le même domaine.
+5. Historique de versions et rollback avant ouverture à grande échelle.
 
 ## 4. Exigences fonctionnelles
 
@@ -61,10 +65,12 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 | F6 | Paiement Stripe | oui | Checkout + webhooks, plans + crédits, factures Stripe |
 | F7 | Domaine client | oui | Le client garde son domaine et son registrar ; guide DNS, vérification de propriété/résolution, routage et HTTPS auto ; aucun achat ou transfert |
 | F8 | Blog technique/SEO | oui | Astro, 1 article/sem au début, FR+EN |
-| F9 | Robot LinkedIn | M2 | repurposing auto des articles + posts vitrines, validation humaine avant publish |
+| F9 | Assistant LinkedIn éditorial | M2 | repurposing de blog/portfolios ; brouillons relus et publiés manuellement, aucune campagne de DM automatique |
 | F10 | i18n sites générés | partiel | FR/EN comme earlyreflect (`/fr/`), autres langues M3 |
 | F11 | Multi-templates | non (M2) | 3 templates M2 |
 | F12 | Historique / rollback | M2 | La preview existe dans le Studio ; conserver la dernière version live si build échoue |
+| F13 | Message de lancement LinkedIn | M1 | Bouton opérateur « Générer un message de soutien à Folioflash » ; brouillon FR/EN éditable, à copier/coller manuellement |
+| F14 | Import de profil | M1 | URL LinkedIn comme référence + texte/document fourni par le membre ; extraction, brouillon à confirmer ; aucun scraping |
 
 ## 5. Exigences non fonctionnelles
 
@@ -75,6 +81,8 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 - **SEO/IA** : sitemap, robots, OG, `llms.txt` + `llms-full.txt` + `persona.json` générés à chaque build (repris d'earlyreflect).
 - **Sécurité** : limite d'upload configurable (proposition pilote : 20 Mo/image), vérification magic bytes, refus SVG/archives au lancement, EXIF retiré, fichiers isolés par compte, stockage temporaire nettoyé, quotas, secrets Stripe uniquement côté serveur.
 - **RGPD** : export/suppression compte, mentions légales, conservation documentée des images optimisées, suppression à la demande, pas de revente de données.
+- **Import LinkedIn** : source/provenance affichée, consentement du membre et confirmation avant génération ; aucune récupération par scraping.
+- **Partage LinkedIn** : générer un texte seulement ; pas d'accès aux contacts, de DM groupés ni de publication automatique.
 
 ## 6. Architecture (résumé — détail en `architecture.md`)
 
@@ -85,7 +93,7 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 
 ## 7. Modèle économique (résumé — chiffres en `couts.md`)
 
-Beta au coût réel : V1 d'essai limitée ; Stripe pour publication/hébergement et consommation IA ; aucun produit de domaine. Tarif exact après mesure des coûts serveur mutualisés, Stripe, LLM, stockage et sauvegardes.
+Beta : V1 d'essai limitée ; crédits de modification au coût LLM réel + petite marge ; frais Stripe et hébergement à intégrer après mesure ; aucun produit de domaine.
 
 ## 8. Critères d'acceptation M1
 
@@ -93,6 +101,8 @@ Beta au coût réel : V1 d'essai limitée ; Stripe pour publication/hébergement
 - [ ] Après paiement et DNS configuré par le client, le site est publié sur son propre domaine avec HTTPS.
 - [ ] Paiement Stripe test/live et webhook idempotent validés ; estimation avant job et frais mesurés.
 - [ ] Une image originale est optimisée avant stockage durable ; le fichier original et les EXIF ne sont pas conservés.
+- [ ] Le brouillon profil issu d'un texte/document fourni est relu et confirmé avant génération ; aucune donnée n'est récupérée par scraping LinkedIn.
+- [ ] Le bouton LinkedIn génère un brouillon FR/EN éditable et copiable ; il n'envoie ni ne publie rien.
 - [ ] Une panne de build ne remplace pas la dernière version publiée.
 - [ ] Lighthouse home ≥ 95 perf/a11y/SEO.
 - [ ] Coût marginal mesuré par site (LLM + hosting + Stripe) consigné dans `couts.md`.
@@ -107,3 +117,5 @@ Beta au coût réel : V1 d'essai limitée ; Stripe pour publication/hébergement
 | Support DNS pour non-tech | guide FR/EN, diagnostic DNS automatique ; le client garde le domaine |
 | Nano saturé (builds, images, requêtes simultanées) | test de charge, quota, file séquentielle, alertes disque/RAM, plafond de pilotes avant vente |
 | Contenu illicite uploadé | CGU + signalement + suspension, modération a posteriori M1 |
+| Informations professionnelles inventées | demander confirmation du profil extrait ; ne pas compléter les faits manquants par hallucination |
+| Envoi massif LinkedIn perçu comme spam | bouton de brouillon uniquement, envoi manuel et personnalisé, aucun accès aux contacts |

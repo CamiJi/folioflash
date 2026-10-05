@@ -14,6 +14,8 @@ Alternatives écartées : Minifolio (trop générique), Quickreflect (trop proch
 - Sites clients : identité autonome. Si le créateur n'indique pas de style, le LLM propose un thème adapté au métier, aux projets et aux assets ; sa proposition est modifiable avant publication.
 - Galerie : exemples réels de pilotes, tous métiers, avec autorisation explicite. N'afficher des métriques Lighthouse/poids qu'après mesure réelle.
 - Pas d'offre de domaine : chaque client garde le sien et paie son registrar ; Folioflash explique le pointage DNS vers le serveur.
+- Bouton opérateur M1 « Générer un message de soutien à Folioflash » : le LLM produit un brouillon FR/EN que Camille peut personnaliser et copier sur LinkedIn pour présenter la beta et inviter son réseau à relayer les portfolios.
+- Aucun scraping de contacts LinkedIn, DM de masse ou publication automatique ; les liens et mentions doivent être choisis/relus par Camille.
 
 ## 3. Contenu SEO (blog)
 

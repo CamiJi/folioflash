@@ -3,7 +3,8 @@
 > Décision : les portfolios clients sont hébergés sur le serveur personnel de Camille.
 > Les clients gardent et paient leurs domaines directement à leur registrar ; Folioflash
 > ne vend, n'achète ni ne transfère de domaine. Les montants ci-dessous ne sont pas un
-> tarif commercial : la beta vise le coût réel, à valider sur pilotes.
+> tarif commercial : la beta vise les crédits IA au coût fournisseur plus une petite
+> marge. Stripe et l'hébergement doivent être mesurés et intégrés séparément.
 
 ## 1. Coûts fixes mensuels (serveur actuel)
 
@@ -40,12 +41,13 @@ Mesures pilotes : une V1 de Léa a coûté environ 0,005 € en LLM et une modif
 
 ## 4. Facturation beta — coût réel, tarifs à décider
 
-Objectif : lancement pilote pas cher et au coût réel. Aucun tarif fixe ne doit être
-présenté comme acté tant que la quote-part d'hébergement, stockage, sauvegardes et
-frais Stripe ne sont pas mesurés.
+Objectif : crédits IA facturés au coût réel des tokens **plus une petite marge** pour
+tester la volonté de payer. Pour l'instant, le pourcentage de marge et le prix des
+recharges restent à fixer après mesure. L'hébergement et les frais Stripe doivent être
+visibles/calculés séparément, pas cachés dans le coût LLM.
 
-- Stripe : paiement publication/hébergement et usage IA ; choisir avant lancement
-  entre crédits prépayés et débit par job.
+- Stripe : packs/recharges de crédits prépayés ; éviter une transaction par appel IA,
+  car les frais fixes peuvent largement dépasser un job de quelques millièmes d'euro.
 - IA : estimation en euros avant lancement ; journal réel de coût par appel ; échec
   de génération = pas de débit client ou remboursement idempotent.
 - Domaine : aucun prélèvement Folioflash ; le créateur paie son registrar directement.
