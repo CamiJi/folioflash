@@ -11,7 +11,7 @@
 - [x] Pipeline V1 réel : `POST /api/sites/:id/v1` → génération (LLM si clé, sinon fallback) → build Astro → `live` (vérifié : 6 pages, palette client)
 - [x] Régénération au prompt (texte + dictée voix Web Speech API FR/EN) : `POST /api/sites/:id/edit` → rebuild immédiat, 1 crédit, tokens/coût loggés
 - [ ] Auth lien magique + Stripe test (29 € publication, crédits ~2 €) + push repo client → Pages
-- [ ] Déploiement Studio sur nano
+- [x] Paquet déploiement nano (Dockerfile node:22 + compose sur `travel-network` + runbook `deploy/`) — reste : DNS Cloudflare + Proxy Host NPM
 - [ ] Template-folio dérivé d'earlyreflect + `optimize-image` + `llms.txt`
 - [ ] Pipeline live-only (repo/orga → Actions → Pages) + CNAME auto
 - [ ] Stripe Checkout publication + crédits + webhooks + factures
