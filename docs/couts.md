@@ -41,12 +41,13 @@ Mesures pilotes : une V1 de Léa a coûté environ 0,005 € en LLM et une modif
 
 ## 4. Facturation beta — coût réel, tarifs à décider
 
-Objectif : recharge pilote de **5 €**, puis portefeuille consommé par chaque prompt.
+Décision beta : chaque recharge de crédits est de **5 €** ; le portefeuille est consommé
+par prompt.
 Le débit d'un job correspond au coût IA réel + build/compute attribuable + petite marge.
 Le net disponible du portefeuille tient compte des frais Stripe de la recharge. Le
 pourcentage exact de marge et les unités affichées restent à décider après mesure.
 
-- Stripe : recharge initiale de 5 € à tester ; éviter une transaction par appel IA,
+- Stripe : recharge fixe de 5 € ; éviter une transaction par appel IA,
   car les frais fixes peuvent largement dépasser un job de quelques millièmes d'euro.
 - Crédit : débiter le coût total calculé par job, arrondi à l'unité affichée ; si un
   modèle est gratuit, facturer tout de même compute/build et quote-part pertinente.

@@ -48,7 +48,7 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 
 ### 3.3 Modifications par prompt et crédits payants
 1. Après la V1 initiale, toute modification du portfolio passe par un prompt texte/voix ; pas d'éditeur manuel.
-2. Recharge minimale pilote proposée : **5 €** par transaction Stripe ; le montant exact de crédits disponibles tient compte des frais Stripe et du petit markup.
+2. Recharge de crédits beta : **5 €** par transaction Stripe ; le montant de crédits disponibles tient compte des frais Stripe et de la petite marge.
 3. Chaque modification débite le portefeuille selon le coût réel IA + build/compute attribuable + petite marge ; afficher l'estimation en crédits/€ avant confirmation.
 4. Les crédits sont prépayés/rechargés afin d'éviter une micro-transaction Stripe par appel IA. Stripe/webhooks et journal du portefeuille doivent être idempotents.
 5. Après confirmation, le LLM propose l'aperçu de modification puis le build statique publie sur le même domaine.
@@ -95,7 +95,7 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 
 ## 7. Modèle économique (résumé — chiffres en `couts.md`)
 
-Beta : V1 d'essai limitée ; recharge pilote de 5 € proposée ; modifications débitées du portefeuille au coût mesuré (LLM + build/compute) + petite marge. Frais Stripe, stockage et hébergement doivent être couverts/mesurés ; aucun produit de domaine.
+Beta : V1 d'essai limitée ; recharge de crédits de 5 € ; modifications débitées du portefeuille au coût mesuré (LLM + build/compute) + petite marge. Frais Stripe, stockage et hébergement doivent être couverts/mesurés ; aucun produit de domaine.
 
 ## 8. Critères d'acceptation M1
 
