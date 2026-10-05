@@ -9,6 +9,6 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs"
+    "check": "node --check server.mjs && node --check lib/generate.mjs && node --check lib/pipeline.mjs"
   }
 }

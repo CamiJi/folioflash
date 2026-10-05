@@ -1,9 +1,22 @@
-# Studio — run + API contract (M1 skeleton)
+# Studio — run + API contract (M1)
 
 ```bash
-nvm use 22
-node server.mjs   # → http://localhost:4322 (form + JSON API, zero deps)
+nvm use 22            # Nano: Node ≥ 22 requis (build Astro)
+node server.mjs       # → http://localhost:4322 (form + JSON API, zero deps)
 ```
+
+Env: `PORT`, `TEMPLATE_DIR` (défaut `../template-folio`), `NODE_BIN` (défaut `node`),
+`LLM_PROVIDER=anthropic|openai`, `LLM_API_KEY`, `LLM_MODEL`, `LLM_PRICE_IN/OUT` (€/1M tokens).
+Sans clé LLM : fallback local déterministe (marqué `local-fallback`, coût 0) — le pipeline reste testable.
+
+| Method | Route | Effet |
+|---|---|---|
+| GET | `/` | formulaire (prompt texte **+ dictée voix** Web Speech API FR/EN) |
+| GET | `/api/health` | `{ ok, sites }` |
+| POST | `/api/sites` | crée le site (`draft`, **3 crédits test**) |
+| POST | `/api/sites/:id/v1` | job V1 **gratuit** : génère → build Astro → `live`, log tokens/coût |
+| POST | `/api/sites/:id/edit` | `{ prompt }` → **1 crédit**, rebuild + redéploiement immédiat |
+| GET | `/api/sites/:id` | site + crédits |
 
 | Method | Route | Body → Response |
 |---|---|---|

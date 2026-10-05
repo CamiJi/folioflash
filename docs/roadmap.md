@@ -8,8 +8,10 @@
 
 ## M1 — Studio + Pages live (en cours)
 - [x] Template-folio dérivé d'earlyreflect (Astro 6, 1 collection générique, 3 palettes, FR/EN, `llms.txt`, `deploy.yml` Pages)
-- [x] Studio skeleton sur zéro-dépendance (formulaire, `POST /api/sites`, `data/jobs.jsonl`, `schema.sql`)
-- [ ] Studio minimal (auth lien magique, prompt+assets, 1 template, jobs IA, logs coûts)
+- [x] Pipeline V1 réel : `POST /api/sites/:id/v1` → génération (LLM si clé, sinon fallback) → build Astro → `live` (vérifié : 6 pages, palette client)
+- [x] Régénération au prompt (texte + dictée voix Web Speech API FR/EN) : `POST /api/sites/:id/edit` → rebuild immédiat, 1 crédit, tokens/coût loggés
+- [ ] Auth lien magique + Stripe test (29 € publication, crédits ~2 €) + push repo client → Pages
+- [ ] Déploiement Studio sur nano
 - [ ] Template-folio dérivé d'earlyreflect + `optimize-image` + `llms.txt`
 - [ ] Pipeline live-only (repo/orga → Actions → Pages) + CNAME auto
 - [ ] Stripe Checkout publication + crédits + webhooks + factures
