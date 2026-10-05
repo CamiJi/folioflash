@@ -6,7 +6,9 @@
 - [ ] Réserver domaine vitrine + créer orga GitHub dédiée (pas le compte perso à terme)
 - [ ] Lister 8-12 potes pilotes gratuits
 
-## M1 — Studio + Pages live (2-4 sem, sur nano)
+## M1 — Studio + Pages live (en cours)
+- [x] Template-folio dérivé d'earlyreflect (Astro 6, 1 collection générique, 3 palettes, FR/EN, `llms.txt`, `deploy.yml` Pages)
+- [x] Studio skeleton sur zéro-dépendance (formulaire, `POST /api/sites`, `data/jobs.jsonl`, `schema.sql`)
 - [ ] Studio minimal (auth lien magique, prompt+assets, 1 template, jobs IA, logs coûts)
 - [ ] Template-folio dérivé d'earlyreflect + `optimize-image` + `llms.txt`
 - [ ] Pipeline live-only (repo/orga → Actions → Pages) + CNAME auto

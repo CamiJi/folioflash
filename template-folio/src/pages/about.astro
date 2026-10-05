@@ -1,0 +1,10 @@
+---
+import Base from '../layouts/Base.astro';
+import site from '../data/site.json';
+import { t } from '../i18n/ui';
+---
+
+<Base title={`${t('en', 'about')} — ${site.name}`} description={site.bio} lang="en">
+  <h1 style="margin:0 0 1rem">{t('en', 'about')}</h1>
+  <p style="max-width:44rem">{site.bio}</p>
+</Base>

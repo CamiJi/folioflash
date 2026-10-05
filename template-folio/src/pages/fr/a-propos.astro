@@ -1,0 +1,12 @@
+---
+import Base from '../../layouts/Base.astro';
+import site from '../../data/site.json';
+import { t } from '../../i18n/ui';
+
+const fr = (site as unknown as { fr: { tagline: string; bio: string } }).fr;
+---
+
+<Base title={`${t('fr', 'about')} — ${site.name}`} description={fr.bio} lang="fr">
+  <h1 style="margin:0 0 1rem">{t('fr', 'about')}</h1>
+  <p style="max-width:44rem">{fr.bio}</p>
+</Base>

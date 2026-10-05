@@ -1,0 +1,23 @@
+---
+import Base from '../layouts/Base.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import site from '../data/site.json';
+import { t } from '../i18n/ui';
+import { getCollection } from 'astro:content';
+
+const projects = (await getCollection('projects'))
+  .filter((p) => p.data.featured)
+  .sort((a, b) => (a.data.order ?? 999) - (b.data.order ?? 999))
+  .slice(0, 6);
+---
+
+<Base title={`${site.name} — ${site.craft}`} description={site.tagline} lang="en">
+  <h1 style="font-size:clamp(2rem,1.2rem + 3.5vw,3.4rem);line-height:1.1;margin:0 0 0.5rem">
+    {site.name}
+  </h1>
+  <p style="font-size:1.25rem;color:var(--color-ink-muted);margin:0 0 2.5rem">{site.tagline}</p>
+  <h2 style="font-size:1.5rem;margin:0 0 1rem">{t('en', 'featured')}</h2>
+  <div style="display:grid;gap:1.5rem;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">
+    {projects.map((p) => <ProjectCard project={p} />)}
+  </div>
+</Base>

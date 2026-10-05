@@ -1,0 +1,41 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  project: CollectionEntry<'projects'>;
+}
+
+const { project } = Astro.props;
+const { data } = project;
+---
+
+<article
+  style="border:1px solid var(--color-rule);border-radius:4px;overflow:hidden;background:var(--color-surface)"
+>
+  {
+    data.keyArt && (
+      <img
+        src={data.keyArt}
+        alt={data.keyArtAlt ?? data.title}
+        loading="lazy"
+        style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block"
+      />
+    )
+  }
+  <div style="padding:1.25rem">
+    <h3 style="margin:0 0 0.25rem;font-size:1.25rem">{data.title}</h3>
+    <p style="margin:0 0 0.5rem;color:var(--color-ink-muted);font-size:0.875rem">
+      {data.role} · {data.years}
+    </p>
+    <p style="margin:0 0 0.75rem">{data.summary}</p>
+    {
+      data.links.length > 0 && (
+        <p style="margin:0;display:flex;gap:0.75rem;flex-wrap:wrap">
+          {data.links.map((l) => (
+            <a href={l.url}>{l.label}</a>
+          ))}
+        </p>
+      )
+    }
+  </div>
+</article>

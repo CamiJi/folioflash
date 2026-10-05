@@ -1,0 +1,19 @@
+---
+import Base from '../layouts/Base.astro';
+import site from '../data/site.json';
+import { t } from '../i18n/ui';
+---
+
+<Base
+  title={`${t('en', 'contact')} — ${site.name}`}
+  description={`${t('en', 'emailMe')} ${site.name}`}
+  lang="en"
+>
+  <h1 style="margin:0 0 1rem">{t('en', 'contact')}</h1>
+  <p><a href={`mailto:${site.email}`}>{site.email}</a></p>
+  <ul>
+    {(site.socials as { label: string; url: string }[]).map((s) => (
+      <li><a href={s.url}>{s.label}</a></li>
+    ))}
+  </ul>
+</Base>

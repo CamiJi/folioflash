@@ -1,0 +1,18 @@
+---
+import Base from '../layouts/Base.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import site from '../data/site.json';
+import { t } from '../i18n/ui';
+import { getCollection } from 'astro:content';
+
+const projects = (await getCollection('projects')).sort(
+  (a, b) => (a.data.order ?? 999) - (b.data.order ?? 999),
+);
+---
+
+<Base title={`${t('en', 'allProjects')} — ${site.name}`} description={site.tagline} lang="en">
+  <h1 style="margin:0 0 1.5rem">{t('en', 'allProjects')}</h1>
+  <div style="display:grid;gap:1.5rem;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">
+    {projects.map((p) => <ProjectCard project={p} />)}
+  </div>
+</Base>

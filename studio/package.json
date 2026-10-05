@@ -1,0 +1,14 @@
+{
+  "name": "folioflash-studio",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Folioflash Studio — minimal orchestrator (M1): intake form, site records, job log. Zero deps, Node 22+.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node --check server.mjs"
+  }
+}

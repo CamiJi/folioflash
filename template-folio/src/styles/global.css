@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Folioflash tokens — 3 palettes, switched via [data-palette]
+   on <html> (value comes from site.json, rewritten per client).
+   ============================================================ */
+@theme {
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --text-base--line-height: 1.6;
+  --max-width: 64rem;
+}
+
+:root,
+:root[data-palette="paper"] {
+  --color-paper: #f4f4f0;
+  --color-surface: #ffffff;
+  --color-ink: #1a1a1a;
+  --color-ink-muted: #5e656c;
+  --color-rule: #dce0dd;
+  --color-brand: #007190;
+  --color-brand-deep: #005a75;
+}
+
+:root[data-palette="iris"] {
+  --color-paper: #14121c;
+  --color-surface: #1e1b2a;
+  --color-ink: #f2f0fa;
+  --color-ink-muted: #a8a3c2;
+  --color-rule: #38334e;
+  --color-brand: #9d8cff;
+  --color-brand-deep: #7c6cf0;
+}
+
+:root[data-palette="forest"] {
+  --color-paper: #f1f4ec;
+  --color-surface: #ffffff;
+  --color-ink: #1c2a1c;
+  --color-ink-muted: #5c6e5c;
+  --color-rule: #d3dccf;
+  --color-brand: #2e7d32;
+  --color-brand-deep: #1b5e20;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  a {
+    color: var(--color-brand);
+  }
+}

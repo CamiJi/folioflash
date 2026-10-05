@@ -3,6 +3,11 @@ node_modules/
 dist/
 .astro/
 
+# studio runtime (local only)
+studio/data/
+*.sqlite
+*.sqlite-journal
+
 # secrets — jamais commité
 .secrets.env
 *.key

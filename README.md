@@ -6,6 +6,7 @@
 
 - 🇫🇷 Version française : voir `docs/cahier-des-charges.md`
 - 📐 Spec : `docs/cahier-des-charges.md` · Architecture : `docs/architecture.md` · Costs : `docs/couts.md` · Marketing : `docs/marketing-seo.md` · Roadmap : `docs/roadmap.md`
+- 🧱 Build : `template-folio/` (Astro template, M1) · `studio/` (orchestrator skeleton, M1)
 
 ![status](https://img.shields.io/badge/status-M0%20framing-blue)
 ![stack](https://img.shields.io/badge/stack-Astro%206%20%E2%80%A2%20Tailwind%204%20%E2%80%A2%20Stripe-orange)
