@@ -16,6 +16,10 @@ const projects = defineCollection({
     years: z.string(),
     /** ≤ 200 chars — shown in grid + meta description */
     summary: z.string().max(200),
+    /** Optional French variant; English is the source/default language. */
+    frTitle: z.string().optional(),
+    frRole: z.string().optional(),
+    frSummary: z.string().max(200).optional(),
     /** Key art 16:9, WebP — optional so text-only portfolios build */
     keyArt: z.string().optional(),
     keyArtAlt: z.string().optional(),

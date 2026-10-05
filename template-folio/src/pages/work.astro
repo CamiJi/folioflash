@@ -11,8 +11,12 @@ const projects = (await getCollection('projects')).sort(
 ---
 
 <Base title={`${t('en', 'allProjects')} — ${site.name}`} description={site.tagline} lang="en">
-  <h1 style="margin:0 0 1.5rem">{t('en', 'allProjects')}</h1>
-  <div style="display:grid;gap:1.5rem;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">
-    {projects.map((p) => <ProjectCard project={p} />)}
+  <header class="mb-12 max-w-3xl md:mb-16">
+    <p class="eyebrow mb-5">{site.craft}</p>
+    <h1 class="page-title">{t('en', 'allProjects')}</h1>
+    <p class="mt-4 max-w-xl text-base text-muted">{site.tagline}</p>
+  </header>
+  <div class="project-grid">
+    {projects.map((project, index) => <ProjectCard project={project} index={index} />)}
   </div>
 </Base>

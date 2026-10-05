@@ -1,0 +1,20 @@
+---
+import Base from '../../layouts/Base.astro';
+import ProjectCard from '../../components/ProjectCard.astro';
+import site from '../../data/site.json';
+import { t } from '../../i18n/ui';
+import { getCollection } from 'astro:content';
+
+const projects = await getCollection('projects');
+---
+
+<Base title={`${t('fr', 'allProjects')} — ${site.name}`} description={site.tagline} lang="fr">
+  <header class="mb-12 max-w-3xl md:mb-16">
+    <p class="eyebrow mb-5">{site.craft}</p>
+    <h1 class="page-title">{t('fr', 'allProjects')}</h1>
+    <p class="mt-4 max-w-xl text-base text-muted">{site.tagline}</p>
+  </header>
+  <div class="project-grid">
+    {projects.map((project, index) => <ProjectCard project={project} index={index} lang="fr" />)}
+  </div>
+</Base>

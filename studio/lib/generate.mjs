@@ -20,9 +20,10 @@ const DEFAULT_PRICES = {
 
 const SYSTEM = `You generate portfolio content as STRICT JSON, no markdown, no commentary.
 Shape: {"tagline":str,"bio":str,"palette":"paper|iris|forest","fr":{"tagline":str,"bio":str},
-"projects":[{"title":str,"role":str,"years":str,"summary":str(max 200 chars)}]}
-Rules: 3 projects max, summaries ≤ 200 chars, French translations required,
-no lorem ipsum, tone direct and concrete.`;
+"projects":[{"title":str,"role":str,"years":str,"summary":str(max 200 chars),
+"fr":{"title":str,"role":str,"summary":str(max 200 chars)}}]}
+Rules: 3 projects max, primary project copy in English, accurate French translation in fr,
+summaries ≤ 200 chars per language, no lorem ipsum, tone direct and concrete.`;
 
 function estimateCost(provider, tokensIn, tokensOut) {
   const p = DEFAULT_PRICES[provider] ?? DEFAULT_PRICES.local;
@@ -63,7 +64,7 @@ async function callOpenAI(prompt, profile) {
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYSTEM },
-        { role: 'user', content: `Name: ${profile.name}\nCraft: ${profile.craft}\nBrief: ${prompt}` },
+        { role: 'user', content: `Name: ${profile.name}\nCraft: ${profile.craft}\nCurrent palette: ${profile.palette ?? 'paper'} (keep it unless this request asks for a change)\nBrief: ${prompt}` },
       ],
     }),
   });
@@ -92,7 +93,7 @@ async function callOpenRouter(prompt, profile) {
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYSTEM },
-        { role: 'user', content: `Name: ${profile.name}\nCraft: ${profile.craft}\nBrief: ${prompt}` },
+        { role: 'user', content: `Name: ${profile.name}\nCraft: ${profile.craft}\nCurrent palette: ${profile.palette ?? 'paper'} (keep it unless this request asks for a change)\nBrief: ${prompt}` },
       ],
     }),
   });
@@ -155,6 +156,9 @@ export async function generateSite({ name, craft, prompt, palette }) {
         role: String(p.role ?? craft),
         years: String(p.years ?? '2025'),
         summary: String(p.summary ?? '').slice(0, 200),
+        frTitle: String(p.fr?.title ?? p.title ?? `Projet ${i + 1}`),
+        frRole: String(p.fr?.role ?? p.role ?? craft),
+        frSummary: String(p.fr?.summary ?? p.summary ?? '').slice(0, 200),
         links: [],
         featured: true,
         order: i + 1,

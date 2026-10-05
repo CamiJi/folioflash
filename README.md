@@ -5,7 +5,7 @@
 **Folioflash** turns a simple prompt + photos/texts/links into a static **Astro** portfolio site: 0 JS by default, WebP images, video facades, 95+ Lighthouse, FR/EN, SEO + `llms.txt` included.
 
 - 🇫🇷 Version française : voir `docs/cahier-des-charges.md`
-- 📐 Spec : `docs/cahier-des-charges.md` · Architecture : `docs/architecture.md` · Costs : `docs/couts.md` · Marketing : `docs/marketing-seo.md` · Roadmap : `docs/roadmap.md`
+- 📐 Spec : `docs/cahier-des-charges.md` · Architecture : `docs/architecture.md` · Design : `docs/design-system.md` · Costs : `docs/couts.md` · Marketing : `docs/marketing-seo.md` · Roadmap : `docs/roadmap.md`
 - 🧱 Build : `template-folio/` (Astro template, M1) · `studio/` (orchestrator skeleton, M1)
 
 ![status](https://img.shields.io/badge/status-M0%20framing-blue)

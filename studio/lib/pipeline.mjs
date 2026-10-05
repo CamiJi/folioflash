@@ -24,11 +24,15 @@ const NODE_BIN = process.env.NODE_BIN ?? 'node';
 const slugify = (s) =>
   s.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
+const yamlString = (value) => JSON.stringify(String(value ?? ''));
 const projectMd = (p) => `---
-title: "${p.title.replace(/"/g, "'")}"
-role: "${p.role.replace(/"/g, "'")}"
-years: "${p.years.replace(/"/g, "'")}"
-summary: "${p.summary.replace(/"/g, "'")}"
+title: ${yamlString(p.title)}
+role: ${yamlString(p.role)}
+years: ${yamlString(p.years)}
+summary: ${yamlString(p.summary)}
+frTitle: ${yamlString(p.frTitle ?? p.title)}
+frRole: ${yamlString(p.frRole ?? p.role)}
+frSummary: ${yamlString(p.frSummary ?? p.summary)}
 featured: ${p.featured}
 order: ${p.order}
 links: []
@@ -87,6 +91,7 @@ export async function runJob({ slug, kind, profile, prompt }) {
       cwd: buildDir,
       timeout: 120_000,
       stdio: 'pipe',
+      env: { ...process.env, FOLIOFLASH_PREVIEW: 'true' },
     });
   } catch (err) {
     throw new Error(`astro build failed: ${String(err.stderr ?? err.message).slice(0, 500)}`);
