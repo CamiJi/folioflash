@@ -8,12 +8,12 @@
 
 ## M1 — Studio + Pages live (en cours)
 - [x] Template-folio dérivé d'earlyreflect (Astro 6, 1 collection générique, 3 palettes, FR/EN, `llms.txt`, `deploy.yml` Pages)
-- [x] Pipeline V1 réel : `POST /api/sites/:id/v1` → génération (LLM si clé, sinon fallback) → build Astro → `live` (vérifié : 6 pages, palette client)
-- [x] Régénération au prompt (texte + dictée voix Web Speech API FR/EN) : `POST /api/sites/:id/edit` → rebuild immédiat, 1 crédit, tokens/coût loggés
+- [x] Pipeline V1 réel OpenRouter : prompt → contenu FR/EN + projets → build Astro live (test Léa : 3 projets correctement extraits, coût ~0,004 €)
+- [x] Régénération au prompt (texte + dictée voix Web Speech API FR/EN) : `POST /api/sites/:id/edit` → rebuild immédiat, 1 crédit, coût tokens loggé
 - [ ] Auth lien magique + Stripe test (29 € publication, crédits ~2 €) + push repo client → Pages
-- [x] Paquet déploiement nano (Dockerfile node:22 + compose sur `travel-network` + runbook `deploy/`) — reste : DNS Cloudflare + Proxy Host NPM
-- [ ] Template-folio dérivé d'earlyreflect + `optimize-image` + `llms.txt`
-- [ ] Pipeline live-only (repo/orga → Actions → Pages) + CNAME auto
+- [x] Studio déployé sur `https://folioflash.camilleaubert.com` (nano, Basic Auth provisoire sur Studio/API, démo publique `/demo/`)
+- [x] Paquet déploiement nano (Dockerfile Node 22 + compose sur `travel-network` + runbook `deploy/`)
+- [ ] Push vers repo client → GitHub Actions/Pages + CNAME auto (pour l'instant seul `/demo/` est public)
 - [ ] Stripe Checkout publication + crédits + webhooks + factures
 - [ ] 10 sites pilotes (dont potes gratuits) + mesure Lighthouse + coûts réels
 

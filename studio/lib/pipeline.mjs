@@ -63,7 +63,7 @@ export async function runJob({ slug, kind, profile, prompt }) {
         name: profile.name,
         craft: profile.craft,
         email: profile.email ?? 'hello@example.com',
-        palette: profile.palette,
+        palette: generated.palette ?? profile.palette,
         socials: [],
         tagline: generated.tagline,
         bio: generated.bio,

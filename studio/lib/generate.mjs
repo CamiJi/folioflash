@@ -19,7 +19,7 @@ const DEFAULT_PRICES = {
 };
 
 const SYSTEM = `You generate portfolio content as STRICT JSON, no markdown, no commentary.
-Shape: {"tagline":str,"bio":str,"fr":{"tagline":str,"bio":str},
+Shape: {"tagline":str,"bio":str,"palette":"paper|iris|forest","fr":{"tagline":str,"bio":str},
 "projects":[{"title":str,"role":str,"years":str,"summary":str(max 200 chars)}]}
 Rules: 3 projects max, summaries ≤ 200 chars, French translations required,
 no lorem ipsum, tone direct and concrete.`;
@@ -166,6 +166,7 @@ export async function generateSite({ name, craft, prompt, palette }) {
         site: {
           tagline: String(parsed.tagline).slice(0, 200),
           bio: String(parsed.bio).slice(0, 200),
+          palette: ['paper', 'iris', 'forest'].includes(parsed.palette) ? parsed.palette : palette,
           fr: {
             tagline: String(parsed.fr?.tagline ?? parsed.tagline).slice(0, 200),
             bio: String(parsed.fr?.bio ?? parsed.bio).slice(0, 200),
