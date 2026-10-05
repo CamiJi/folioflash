@@ -1,0 +1,20 @@
+services:
+  studio:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: folioflash-studio
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4322:4322" # local test via SSH only — public traffic goes through NPM
+    volumes:
+      - folio-data:/app/studio/data
+    networks:
+      - travel-network # shared backbone (proxy + portfolio + nestor) — name is historical, do NOT rename
+
+volumes:
+  folio-data:
+
+networks:
+  travel-network:
+    external: true

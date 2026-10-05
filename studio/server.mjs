@@ -8,12 +8,14 @@
  * TODO(M1): magic-link auth, Stripe webhooks, push to per-client GitHub repo + Pages.
  */
 import { createServer } from 'node:http';
-import { mkdirSync, appendFileSync } from 'node:fs';
+import { mkdirSync, appendFileSync, readFileSync, existsSync, statSync } from 'node:fs';
+import path from 'node:path';
 import { runJob } from './lib/pipeline.mjs';
 
 const PORT = Number(process.env.PORT ?? 4322);
 const sites = new Map();
 const credits = new Map(); // email/name → balance (test: 3 free edits per site owner)
+let lastLiveDir = null; // abs path of the most recent live dist/ — served on /demo
 let seq = 0;
 
 function logJob(entry) {
@@ -98,6 +100,42 @@ e.onsubmit = async (e) => {
 };
 </script></body></html>`;
 
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+  '.png': 'image/png',
+  '.xml': 'application/xml',
+  '.txt': 'text/plain; charset=utf-8',
+  '.json': 'application/json',
+  '.ico': 'image/x-icon',
+};
+
+/** Serve the most recent live site on /demo (M1 preview — Pages per-client in M1-next). */
+function serveDemo(req, res, pathname) {
+  if (!lastLiveDir) {
+    send(res, 404, { error: 'no live demo yet — generate a V1 first' });
+    return;
+  }
+  let rel = pathname === '/demo' || pathname === '/demo/' ? 'index.html' : pathname.slice('/demo/'.length);
+  const file = path.normalize(path.join(lastLiveDir, rel));
+  if (!file.startsWith(lastLiveDir) || !existsSync(file) || statSync(file).isDirectory()) {
+    // Fallback to extensionless-route convention: <rel>/index.html
+    const nested = path.join(lastLiveDir, rel, 'index.html');
+    if (nested.startsWith(lastLiveDir) && existsSync(nested)) {
+      res.setHeader('Content-Type', MIME['.html']);
+      res.end(readFileSync(nested));
+      return;
+    }
+    send(res, 404, { error: 'not found' });
+    return;
+  }
+  res.setHeader('Content-Type', MIME[path.extname(file)] ?? 'application/octet-stream');
+  res.end(readFileSync(file));
+}
+
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost');
   const m = url.pathname.match(/^\/api\/sites\/([^/]+)(\/(v1|edit))?$/);
@@ -105,6 +143,10 @@ const server = createServer(async (req, res) => {
   if (req.method === 'GET' && url.pathname === '/') {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.end(FORM);
+    return;
+  }
+  if (req.method === 'GET' && (url.pathname === '/demo' || url.pathname.startsWith('/demo/'))) {
+    serveDemo(req, res, url.pathname);
     return;
   }
   if (req.method === 'GET' && url.pathname === '/api/health') {
@@ -180,6 +222,7 @@ const server = createServer(async (req, res) => {
       });
       site.status = result.status;
       site.distDir = result.distDir;
+      if (result.absDistDir) lastLiveDir = result.absDistDir;
       logJob({ kind: `${kind}-request`, siteId: m[1], slug: site.slug, ...result.usage });
       send(res, 200, { ...site, credits: credits.get(m[1]) ?? 0, usage: result.usage });
     } catch (err) {
