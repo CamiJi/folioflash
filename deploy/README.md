@@ -21,6 +21,28 @@ New Proxy Host: `folioflash.camilleaubert.com` → `folioflash-studio:4322`,
 Block Common Exploits ON, SSL Let's Encrypt (force SSL). Container must be on
 `travel-network` (it is — same backbone as portfolio/nestor, name is historical).
 
+### Automated variant (NPM API, done 2026-10-05 — host id 4, cert id 6)
+
+```bash
+ssh -F /tmp/ssh-ff/config -L 8282:127.0.0.1:81 -N nano   # tunnel (background)
+TOKEN=$(curl -s http://localhost:8282/api/tokens \
+  -H 'Content-Type: application/json' \
+  -d '{"identity":"aubertcam@gmail.com","secret":"..."}' \
+  | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+# HTTP host first (cert fields are rejected on create)
+curl -s -X POST http://localhost:8282/api/nginx/proxy-hosts \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"domain_names":["folioflash.camilleaubert.com"],"forward_scheme":"http","forward_host":"folioflash-studio","forward_port":4322}'
+# LE cert: payload MINIMAL — email comes from the account, meta = {dns_challenge:false} only
+curl -s -X POST http://localhost:8282/api/nginx/certificates \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"provider":"letsencrypt","nice_name":"folioflash","domain_names":["folioflash.camilleaubert.com"],"meta":{"dns_challenge":false}}'
+# Attach: PUT /api/nginx/proxy-hosts/4 {"certificate_id":6,"ssl_forced":true,"http2_support":true,"block_exploits":true}
+```
+
+NPM admin password was reset via DB on 2026-10-05
+(`auth.secret` for user 1, backup `database.sqlite.bak-folio`) — Camille: change it in the UI.
+
 ## 3. Validate
 
 ```bash
