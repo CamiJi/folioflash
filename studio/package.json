@@ -9,7 +9,10 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check lib/auth.mjs && node --check lib/generate.mjs && node --check lib/pipeline.mjs && node --check test-support/mock-resend.mjs",
+    "check": "node --check server.mjs && node --check lib/auth.mjs && node --check lib/generate.mjs && node --check lib/pipeline.mjs && node --check test-support/mock-resend.mjs && node --check test-support/mock-nodemailer.mjs",
     "test": "node --test"
+  },
+  "dependencies": {
+    "nodemailer": "^10.0.15"
   }
 }

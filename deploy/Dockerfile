@@ -3,10 +3,11 @@
 FROM node:22.12-alpine
 WORKDIR /app
 
-COPY studio/package.json ./studio/
+COPY studio/package.json studio/package-lock.json ./studio/
 COPY template-folio/package.json template-folio/package-lock.json ./template-folio/
 ENV NODE_OPTIONS=--max-old-space-size=512
-RUN cd template-folio && npm ci --no-audit --no-fund
+RUN cd template-folio && npm ci --no-audit --no-fund \
+  && cd /app/studio && npm ci --omit=dev --no-audit --no-fund
 
 COPY studio/ ./studio/
 COPY template-folio/ ./template-folio/

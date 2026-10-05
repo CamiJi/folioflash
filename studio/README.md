@@ -11,7 +11,7 @@ Sans clé LLM : fallback local déterministe (marqué `local-fallback`, coût 0)
 Avec OpenRouter configuré, les erreurs API/JSON sont renvoyées (pas de fallback silencieux) et
 la tentative échouée rembourse le crédit. Sites/crédits sont persistés dans `data/state.json`.
 En production, `AUTH_MODE=basic` garde le verrou opérateur provisoire. Le mode `magic`
-supporte Brevo ou Resend et demande leur clé API, un expéditeur `MAIL_FROM` vérifié,
+supporte Brevo SMTP, Brevo API ou Resend et demande les identifiants du provider, un expéditeur `MAIL_FROM` vérifié,
 `PUBLIC_BASE_URL` HTTPS et `SESSION_SECRET` aléatoire d'au moins 32 caractères. Tant que
 le fournisseur d'email n'est pas configuré, le code reste en mode Basic ; `/demo/` reste publique.
 

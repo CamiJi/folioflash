@@ -13,8 +13,9 @@ Create `deploy/.env` on the nano (never commit it), with `LLM_PROVIDER`,
 provider-reported token/cost usage. Current personal pilot uses the configured
 OpenRouter model; use a dedicated Folioflash key for production/beta.
 
-Magic-link activation requires an email provider key (Brevo or Resend) and a verified
-sender identity. Configure `EMAIL_PROVIDER=brevo`, `BREVO_API_KEY` (or Resend equivalents),
+Magic-link activation requires email provider credentials (Brevo SMTP/API or Resend) and a verified
+sender identity. Configure `EMAIL_PROVIDER=brevo-smtp`, `SMTP_HOST`, `SMTP_PORT`,
+`SMTP_SECURITY`, `SMTP_LOGIN`, `SMTP_PASS` (or the corresponding API-key variables),
 `MAIL_FROM`, a random `SESSION_SECRET` (32+ chars), and `PUBLIC_BASE_URL`; verify login,
 logout and link expiry before changing `AUTH_MODE=basic` to `AUTH_MODE=magic`. Do not
 disable Basic Auth before that smoke test.

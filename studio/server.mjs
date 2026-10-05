@@ -13,6 +13,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { mkdirSync, appendFileSync, readFileSync, writeFileSync, renameSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import nodemailer from 'nodemailer';
 import { runJob } from './lib/pipeline.mjs';
 import { createOpaqueToken, digestToken, isValidEmail, normalizeEmail, parseCookies } from './lib/auth.mjs';
 
@@ -23,6 +24,11 @@ const STUDIO_PASSWORD = process.env.STUDIO_PASSWORD ?? '';
 const EMAIL_PROVIDER = (process.env.EMAIL_PROVIDER ?? 'resend').toLowerCase();
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? '';
 const BREVO_API_KEY = process.env.BREVO_API_KEY ?? '';
+const SMTP_HOST = process.env.SMTP_HOST ?? '';
+const SMTP_PORT = Number(process.env.SMTP_PORT ?? 587);
+const SMTP_LOGIN = process.env.SMTP_LOGIN ?? '';
+const SMTP_PASS = process.env.SMTP_PASS ?? '';
+const SMTP_SECURITY = (process.env.SMTP_SECURITY ?? 'starttls').toLowerCase();
 const MAIL_FROM = process.env.MAIL_FROM ?? '';
 const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL ?? '').replace(/\/$/, '');
 const SESSION_SECRET = process.env.SESSION_SECRET ?? '';
@@ -30,15 +36,20 @@ const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const SESSION_COOKIE = 'folioflash_session';
 const isSecure = PUBLIC_BASE_URL.startsWith('https://');
+const EMAIL_PROVIDER_LABEL = EMAIL_PROVIDER.startsWith('brevo') ? 'Brevo' : 'Resend';
 
 if (!['basic', 'magic'].includes(AUTH_MODE)) throw new Error('AUTH_MODE must be basic or magic');
 if (AUTH_MODE === 'basic' && (!STUDIO_USER || !STUDIO_PASSWORD)) {
   throw new Error('STUDIO_USER and STUDIO_PASSWORD are required in basic auth mode');
 }
-if (!['resend', 'brevo'].includes(EMAIL_PROVIDER)) throw new Error('EMAIL_PROVIDER must be resend or brevo');
-const EMAIL_API_KEY = EMAIL_PROVIDER === 'brevo' ? BREVO_API_KEY : RESEND_API_KEY;
-if (AUTH_MODE === 'magic' && (!EMAIL_API_KEY || !MAIL_FROM || SESSION_SECRET.length < 32 || !PUBLIC_BASE_URL.startsWith('https://'))) {
-  throw new Error(`Magic auth requires a ${EMAIL_PROVIDER} API key, MAIL_FROM, SESSION_SECRET, and an HTTPS PUBLIC_BASE_URL`);
+if (!['resend', 'brevo-api', 'brevo-smtp'].includes(EMAIL_PROVIDER)) {
+  throw new Error('EMAIL_PROVIDER must be resend, brevo-api, or brevo-smtp');
+}
+const emailProviderConfigured = EMAIL_PROVIDER === 'brevo-smtp'
+  ? Boolean(SMTP_HOST && SMTP_PORT && SMTP_LOGIN && SMTP_PASS)
+  : Boolean(EMAIL_PROVIDER === 'brevo-api' ? BREVO_API_KEY : RESEND_API_KEY);
+if (AUTH_MODE === 'magic' && (!emailProviderConfigured || !MAIL_FROM || SESSION_SECRET.length < 32 || !PUBLIC_BASE_URL.startsWith('https://'))) {
+  throw new Error(`Magic auth requires valid ${EMAIL_PROVIDER} credentials, MAIL_FROM, SESSION_SECRET, and an HTTPS PUBLIC_BASE_URL`);
 }
 const STUDIO_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_DIR = process.env.TEMPLATE_DIR ?? path.resolve(STUDIO_DIR, '../template-folio');
@@ -133,19 +144,37 @@ function allowMagicLinkRequest(email) {
 }
 
 async function sendMagicLink(email, link) {
-  const isBrevo = EMAIL_PROVIDER === 'brevo';
+  const isBrevoApi = EMAIL_PROVIDER === 'brevo-api';
   const sender = MAIL_FROM.match(/^(.*?)\s*<([^<>]+)>$/);
   const senderEmail = sender ? sender[2].trim() : MAIL_FROM.trim();
   const senderName = sender ? sender[1].replace(/^"|"$/g, '').trim() : 'Folioflash';
   const text = `Voici ton lien de connexion Folioflash. Il expire dans 15 minutes :\n\n${link}\n\nSi tu n'as pas demandé ce lien, ignore ce message.`;
   const html = `<div style="font-family:Arial,sans-serif;background:#0B0B0C;color:#F5F3EF;padding:36px"><h1 style="font-family:Georgia,serif;color:#C6A66B">Folioflash</h1><p>Ton lien de connexion expire dans 15 minutes.</p><p><a href="${link}" style="display:inline-block;background:#C6A66B;color:#0B0B0C;padding:14px 20px;text-decoration:none">Ouvrir mon Studio</a></p><p>Si tu n'as pas demandé ce lien, ignore ce message.</p></div>`;
-  const response = await fetch(isBrevo ? 'https://api.brevo.com/v3/smtp/email' : 'https://api.resend.com/emails', {
+  if (EMAIL_PROVIDER === 'brevo-smtp') {
+    const secure = ['ssl', 'tls', 'smtps'].includes(SMTP_SECURITY) || SMTP_PORT === 465;
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure,
+      requireTLS: !secure,
+      auth: { user: SMTP_LOGIN, pass: SMTP_PASS },
+      tls: { minVersion: 'TLSv1.2' },
+    });
+    try {
+      await transporter.sendMail({ from: MAIL_FROM, to: email, subject: 'Ton lien de connexion Folioflash', text, html });
+    } finally {
+      transporter.close();
+    }
+    return;
+  }
+
+  const response = await fetch(isBrevoApi ? 'https://api.brevo.com/v3/smtp/email' : 'https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      ...(isBrevo ? { 'api-key': BREVO_API_KEY } : { authorization: `Bearer ${RESEND_API_KEY}` }),
+      ...(isBrevoApi ? { 'api-key': BREVO_API_KEY } : { authorization: `Bearer ${RESEND_API_KEY}` }),
       'content-type': 'application/json',
     },
-    body: JSON.stringify(isBrevo ? {
+    body: JSON.stringify(isBrevoApi ? {
       sender: { name: senderName, email: senderEmail },
       to: [{ email }],
       subject: 'Ton lien de connexion Folioflash',
@@ -225,7 +254,7 @@ const loginForm=document.getElementById('login-form');const loginStatus=document
 loginForm.addEventListener('submit',async(event)=>{event.preventDefault();loginButton.disabled=true;loginStatus.textContent='Envoi en cours…';try{const response=await fetch('/api/auth/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('email').value})});const result=await response.json();if(!response.ok)throw new Error(result.error||'Impossible d’envoyer le lien. Réessaie plus tard.');loginStatus.textContent=result.message;}catch(error){loginStatus.textContent=error.message;}finally{loginButton.disabled=false;}});
 </script></body></html>`;
 
-const LOGIN_SETUP_PAGE = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0B0B0C"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><title>Connexion — Folioflash</title>${BRAND_STYLE}</head><body><main class="login-wrap"><section class="login-card"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span><span>Folioflash<small>Portfolio studio</small></span></a><p class="eyebrow" style="margin-top:42px">Connexion par email</p><h1>Encore une étape.</h1><p>Le lien magique n’est pas encore activé : il faut une clé API ${EMAIL_PROVIDER === 'brevo' ? 'Brevo' : 'Resend'} et un expéditeur vérifié. Ensuite, tu pourras entrer ton adresse email ici et recevoir un lien à usage unique.</p><p class="footnote"><a href="/studio">Accès opérateur provisoire</a> · <a href="/">Retour à Folioflash</a></p></section></main></body></html>`;
+const LOGIN_SETUP_PAGE = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0B0B0C"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><title>Connexion — Folioflash</title>${BRAND_STYLE}</head><body><main class="login-wrap"><section class="login-card"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span><span>Folioflash<small>Portfolio studio</small></span></a><p class="eyebrow" style="margin-top:42px">Connexion par email</p><h1>Encore une étape.</h1><p>Le lien magique n’est pas encore activé : il faut configurer ${EMAIL_PROVIDER_LABEL} et un expéditeur vérifié. Ensuite, tu pourras entrer ton adresse email ici et recevoir un lien à usage unique.</p><p class="footnote"><a href="/studio">Accès opérateur provisoire</a> · <a href="/">Retour à Folioflash</a></p></section></main></body></html>`;
 
 const MARKETING_STYLE = `<style>
 .landing{width:min(100% - 40px,1120px);margin:auto}.landing-nav{height:82px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.landing-navlinks{display:flex;align-items:center;gap:24px}.landing-navlinks a{color:var(--muted);font-size:13px;text-decoration:none}.landing-navlinks a:hover{color:var(--gold)}.lang-switch{border:1px solid var(--line);padding:7px 10px!important;color:var(--cream)!important}.landing-hero{min-height:600px;display:grid;grid-template-columns:1.02fr .98fr;gap:40px;align-items:center;padding:68px 0}.landing-copy h1{max-width:640px;margin:18px 0 22px;font:500 clamp(48px,7vw,86px)/.99 var(--serif);letter-spacing:-.055em}.landing-copy h1 em{color:var(--gold);font-style:normal}.landing-copy>p{max-width:520px;color:var(--muted);font-size:17px}.landing-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}.landing-cta{display:inline-flex;min-height:48px;align-items:center;justify-content:center;padding:0 18px;text-decoration:none;font-size:13px;font-weight:650}.landing-cta--gold{background:var(--gold);color:var(--night)}.landing-cta--outline{border:1px solid var(--line);color:var(--cream)}.landing-note{margin-top:20px!important;font-size:12px!important}.landing-art{position:relative;min-height:430px;display:grid;place-items:center}.art-glow{position:absolute;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,#9b7a3d55,transparent 68%);filter:blur(14px)}.folio-card{position:relative;width:min(100%,420px);min-height:410px;padding:28px;background:#f5f3ef;color:#0b0b0c;transform:rotate(2deg);box-shadow:0 24px 80px #0008}.folio-card-top{display:flex;justify-content:space-between;color:#716b61;font-size:10px;letter-spacing:.14em;text-transform:uppercase}.folio-card h2{max-width:300px;margin:54px 0 8px;font:500 51px/.98 var(--serif);letter-spacing:-.05em}.folio-card p{max-width:270px;color:#5d5850;font-size:12px}.folio-card-line{height:1px;background:#d8d3ca;margin:26px 0 18px}.folio-projects{display:grid;grid-template-columns:1fr 1fr;gap:10px}.folio-project{min-height:84px;display:flex;align-items:end;padding:10px;background:#c6a66b;color:#0b0b0c;font:500 16px/1.1 var(--serif)}.folio-project:nth-child(2){background:#151618;color:#f5f3ef}.landing-proof{border-block:1px solid var(--line);padding:19px 0;color:var(--muted);font-size:13px}.landing-proof strong{color:var(--gold);font-weight:500}.landing-section{padding:88px 0}.landing-section h2{margin:0;font:500 clamp(34px,4vw,52px)/1.08 var(--serif);letter-spacing:-.035em}.landing-section-intro{max-width:550px;color:var(--muted)}.landing-features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:34px}.landing-feature{border:1px solid var(--line);padding:24px;background:linear-gradient(145deg,#18191a,#111213)}.landing-feature span{color:var(--gold);font-size:12px}.landing-feature h3{margin:25px 0 8px;font:500 23px/1.2 var(--serif)}.landing-feature p{margin:0;color:var(--muted);font-size:13px}.landing-footer{display:flex;justify-content:space-between;gap:20px;border-top:1px solid var(--line);padding:25px 0 35px;color:var(--muted);font-size:12px}.landing-footer a{color:var(--gold)}

@@ -74,7 +74,7 @@ test('magic links create isolated accounts, one-time sessions and logout', async
   const captureFile = path.join(testDir, 'email.json');
   const port = await freePort();
   const baseUrl = `http://127.0.0.1:${port}`;
-  const child = spawn(process.execPath, ['--import', './test-support/mock-resend.mjs', 'server.mjs'], {
+  const child = spawn(process.execPath, ['--import', './test-support/mock-nodemailer.mjs', 'server.mjs'], {
     cwd: STUDIO_DIR,
     env: {
       ...process.env,
@@ -84,8 +84,12 @@ test('magic links create isolated accounts, one-time sessions and logout', async
       RESEND_API_KEY: 'test-resend-key-not-real',
       MAIL_FROM: 'studio@example.test',
       SESSION_SECRET: 'test-secret-at-least-thirty-two-characters-long',
-      EMAIL_PROVIDER: 'brevo',
-      BREVO_API_KEY: 'test-brevo-key-not-real',
+      EMAIL_PROVIDER: 'brevo-smtp',
+      SMTP_HOST: 'smtp-relay.brevo.test',
+      SMTP_PORT: '587',
+      SMTP_SECURITY: 'starttls',
+      SMTP_LOGIN: 'brevo-test-login',
+      SMTP_PASS: 'brevo-test-password-not-real',
       RESEND_API_KEY: '',
       STUDIO_DATA_DIR: testDir,
       TEST_EMAIL_CAPTURE_FILE: captureFile,
