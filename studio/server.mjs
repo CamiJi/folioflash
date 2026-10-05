@@ -273,6 +273,7 @@ const server = createServer(async (req, res) => {
       });
       site.status = result.status;
       site.distDir = result.distDir;
+      site.palette = result.palette ?? site.palette;
       if (result.absDistDir) lastLiveDir = result.absDistDir;
       saveState();
       logJob({ kind: `${kind}-request`, siteId: m[1], slug: site.slug, ...result.usage });

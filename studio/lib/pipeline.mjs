@@ -92,5 +92,11 @@ export async function runJob({ slug, kind, profile, prompt }) {
     throw new Error(`astro build failed: ${String(err.stderr ?? err.message).slice(0, 500)}`);
   }
 
-  return { status: 'live', distDir: path.join('data', 'builds', slug, 'dist'), absDistDir: path.join(buildDir, 'dist'), usage };
+  return {
+    status: 'live',
+    distDir: path.join('data', 'builds', slug, 'dist'),
+    absDistDir: path.join(buildDir, 'dist'),
+    palette: generated.palette ?? profile.palette,
+    usage,
+  };
 }
