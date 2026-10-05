@@ -37,12 +37,17 @@ Exemple : 10 potes en gratuit → coût LLM ~5-15 € one-shot, hosting 0 €. S
 | 100 sites (30 payants + crédits ~150 €) | ~30-50 € (orga GitHub éventuelle + serveur) | ~1 000 € | ≥ 70 % |
 | 1 000 sites | Phase B obligatoire (serveur 20-60 €/mois) | ~30 k€ cumulé | ≥ 70 % si crédits bien calibrés |
 
-## 4. Règles de prix proposées (à trancher avant Stripe)
+## 4. Prix TEST — prix coûtant (décision 2026-10-05)
 
-- Publication : **29 € TTC** (inclus : site live, SEO/llms, 1 an sous-domaine ou domaine connecté, suppression bandeau).
-- Domaine acheté pour le client : **coût + 5 €**.
-- Crédits modif : **lot de 5 pour 15 €** (1 régénération standard = 1 crédit, grosse refonte = 2-3, devis affiché avant).
+Objectif : pas cher, pour tester. On facture au coût réel, sans marge sauf Stripe incompressible.
+
+- Publication : **29 € TTC** (tout compris : génération V1 + build + SEO/llms + connexion domaine + 1 an d'hébergement sous-domaine ou domaine connecté).
+- Crédit modif IA : **~2 € / crédit** (1 régénération standard = 1 crédit, grosse refonte = 2-3, devis affiché avant le job).
+- Domaine acheté pour le client : **prix coûtant + 5 € de frais**.
 - Renouvellement hébergement : **12 €/an** (sous-domaine) / **19 €/an** (domaine custom).
+- Potes pilotes : **gratuit** (V1 + publication offerte en échange de la galerie publique).
+
+On re-mesure après 50 jobs et on ajuste — les prix ci-dessus sont l'hypothèse de test.
 
 ## 5. À mesurer en M1
 
