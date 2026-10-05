@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createServer } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -84,6 +84,7 @@ test('magic links create isolated accounts, one-time sessions and logout', async
       RESEND_API_KEY: 'test-resend-key-not-real',
       MAIL_FROM: 'studio@example.test',
       SESSION_SECRET: 'test-secret-at-least-thirty-two-characters-long',
+      MAGIC_ALLOWED_EMAILS: 'one@example.test,two@example.test',
       EMAIL_PROVIDER: 'brevo-smtp',
       SMTP_HOST: 'smtp-relay.brevo.test',
       SMTP_PORT: '587',
@@ -114,6 +115,13 @@ test('magic links create isolated accounts, one-time sessions and logout', async
   assert.equal((await fetch(`${baseUrl}/`)).status, 200);
   assert.equal((await fetch(`${baseUrl}/studio`, { redirect: 'manual' })).status, 303);
   assert.equal((await fetch(`${baseUrl}/api/sites`)).status, 401);
+  const uninvited = await fetch(`${baseUrl}/api/auth/request`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'outside@example.test' }),
+  });
+  assert.equal(uninvited.status, 202);
+  assert.equal(existsSync(captureFile), false, 'non-allowlisted addresses receive no email');
 
   const firstToken = await requestLoginLink(baseUrl, 'one@example.test', captureFile);
   const firstCookie = await confirmLink(baseUrl, firstToken);

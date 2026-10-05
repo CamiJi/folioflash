@@ -16,9 +16,10 @@ OpenRouter model; use a dedicated Folioflash key for production/beta.
 Magic-link activation requires email provider credentials (Brevo SMTP/API or Resend) and a verified
 sender identity. Configure `EMAIL_PROVIDER=brevo-smtp`, `SMTP_HOST`, `SMTP_PORT`,
 `SMTP_SECURITY`, `SMTP_LOGIN`, `SMTP_PASS` (or the corresponding API-key variables),
-`MAIL_FROM`, a random `SESSION_SECRET` (32+ chars), and `PUBLIC_BASE_URL`; verify login,
+`MAIL_FROM`, a random `SESSION_SECRET` (32+ chars), `PUBLIC_BASE_URL`, and a pilot
+`MAGIC_ALLOWED_EMAILS` list; verify login,
 logout and link expiry before changing `AUTH_MODE=basic` to `AUTH_MODE=magic`. Do not
-disable Basic Auth before that smoke test.
+enable public signup or disable Basic Auth before that smoke test and the Stripe wallet.
 
 ```bash
 cd /var/www/html/sideprojects/folioflash

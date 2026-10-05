@@ -32,6 +32,9 @@ const SMTP_SECURITY = (process.env.SMTP_SECURITY ?? 'starttls').toLowerCase();
 const MAIL_FROM = process.env.MAIL_FROM ?? '';
 const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL ?? '').replace(/\/$/, '');
 const SESSION_SECRET = process.env.SESSION_SECRET ?? '';
+const MAGIC_ALLOWED_EMAILS = (process.env.MAGIC_ALLOWED_EMAILS ?? '')
+  .split(',').map(normalizeEmail).filter(Boolean);
+const PUBLIC_SIGNUP_ENABLED = process.env.PUBLIC_SIGNUP_ENABLED === 'true';
 const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const SESSION_COOKIE = 'folioflash_session';
@@ -50,6 +53,9 @@ const emailProviderConfigured = EMAIL_PROVIDER === 'brevo-smtp'
   : Boolean(EMAIL_PROVIDER === 'brevo-api' ? BREVO_API_KEY : RESEND_API_KEY);
 if (AUTH_MODE === 'magic' && (!emailProviderConfigured || !MAIL_FROM || SESSION_SECRET.length < 32 || !PUBLIC_BASE_URL.startsWith('https://'))) {
   throw new Error(`Magic auth requires valid ${EMAIL_PROVIDER} credentials, MAIL_FROM, SESSION_SECRET, and an HTTPS PUBLIC_BASE_URL`);
+}
+if (AUTH_MODE === 'magic' && !PUBLIC_SIGNUP_ENABLED && MAGIC_ALLOWED_EMAILS.length === 0) {
+  throw new Error('Magic auth requires MAGIC_ALLOWED_EMAILS until public signup is deliberately enabled');
 }
 const STUDIO_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_DIR = process.env.TEMPLATE_DIR ?? path.resolve(STUDIO_DIR, '../template-folio');
@@ -386,6 +392,10 @@ const server = createServer(async (req, res) => {
       }
       if (!allowMagicLinkRequest(email)) {
         send(res, 429, { error: 'Trop de demandes. Attends quelques minutes puis réessaie.' });
+        return;
+      }
+      if (!PUBLIC_SIGNUP_ENABLED && !MAGIC_ALLOWED_EMAILS.includes(email)) {
+        send(res, 202, { message: 'Si cette adresse peut recevoir un lien, tu le trouveras bientôt dans ta boîte email.' });
         return;
       }
       for (const [key, record] of magicLinks) {
