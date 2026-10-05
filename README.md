@@ -39,7 +39,7 @@ Voir `docs/couts.md`. Le nano actuel n'est pas une capacité illimitée : nombre
 ## Status / roadmap
 
 - **Prototype** : Studio, génération LLM et template visibles sur le serveur.
-- **M1** : branding Folioflash, vraie auth, optimisation assets, multi-sites/domaines clients, Stripe test/live, mesure capacité.
+- **M1** : site marketing, activation du lien magique (Resend à configurer), optimisation assets, multi-sites/domaines clients, Stripe test/live, mesure capacité.
 - **M2** : rollback, industrialisation et migration serveur si capacité atteinte ; blog SEO et LinkedIn validés par humain.
 
 See `docs/roadmap.md`.

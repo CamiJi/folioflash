@@ -13,6 +13,11 @@ Create `deploy/.env` on the nano (never commit it), with `LLM_PROVIDER`,
 provider-reported token/cost usage. Current personal pilot uses the configured
 OpenRouter model; use a dedicated Folioflash key for production/beta.
 
+Magic-link activation also requires a Resend API key and a verified sender domain.
+Configure `RESEND_API_KEY`, `MAIL_FROM`, a random `SESSION_SECRET` (32+ chars), and
+`PUBLIC_BASE_URL`; verify login/logout and link expiry before changing
+`AUTH_MODE=basic` to `AUTH_MODE=magic`. Do not disable Basic Auth before that smoke test.
+
 ```bash
 cd /var/www/html/sideprojects/folioflash
 ssh -F /tmp/ssh-ff/config nano 'mkdir -p /home/ubuntu/apps/folioflash'

@@ -19,11 +19,12 @@ const DEFAULT_PRICES = {
 };
 
 const SYSTEM = `You generate portfolio content as STRICT JSON, no markdown, no commentary.
-Shape: {"tagline":str,"bio":str,"palette":"paper|iris|forest","fr":{"tagline":str,"bio":str},
+Shape: {"tagline":str,"bio":str,"palette":"paper|iris|forest","designDirection":str(max 160),"fr":{"tagline":str,"bio":str},
 "projects":[{"title":str,"role":str,"years":str,"summary":str(max 200 chars),
 "fr":{"title":str,"role":str,"summary":str(max 200 chars)}}]}
 Rules: 3 projects max, primary project copy in English, accurate French translation in fr,
-summaries ≤ 200 chars per language, no lorem ipsum, tone direct and concrete.`;
+summaries ≤ 200 chars per language, no lorem ipsum, tone direct and concrete. If no style preference
+is supplied, propose a specific visual direction based on craft and projects, not generic adjectives.`;
 
 function estimateCost(provider, tokensIn, tokensOut) {
   const p = DEFAULT_PRICES[provider] ?? DEFAULT_PRICES.local;
@@ -32,7 +33,10 @@ function estimateCost(provider, tokensIn, tokensOut) {
   return (tokensIn / 1e6) * priceIn + (tokensOut / 1e6) * priceOut;
 }
 
-async function callAnthropic(prompt, profile) {
+const userBrief = (profile, prompt, stylePreference = '') =>
+  `Name: ${profile.name}\nCraft: ${profile.craft}\nCurrent palette: ${profile.palette ?? 'none selected; choose paper, iris, or forest to fit the craft and projects'} (keep an existing palette unless a change is requested)\nStyle preference: ${stylePreference || 'none provided; propose a direction that fits the craft, projects, and brief'}\nBrief: ${prompt}`;
+
+async function callAnthropic(prompt, profile, stylePreference) {
   const model = process.env.LLM_MODEL ?? 'claude-haiku-4-5-20251001';
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -45,7 +49,7 @@ async function callAnthropic(prompt, profile) {
       model,
       max_tokens: 1500,
       system: SYSTEM,
-      messages: [{ role: 'user', content: `Name: ${profile.name}\nCraft: ${profile.craft}\nBrief: ${prompt}` }],
+      messages: [{ role: 'user', content: userBrief(profile, prompt, stylePreference) }],
     }),
   });
   if (!res.ok) throw new Error(`anthropic ${res.status}`);
@@ -54,7 +58,7 @@ async function callAnthropic(prompt, profile) {
   return { text, in: json.usage?.input_tokens ?? 0, out: json.usage?.output_tokens ?? 0 };
 }
 
-async function callOpenAI(prompt, profile) {
+async function callOpenAI(prompt, profile, stylePreference) {
   const model = process.env.LLM_MODEL ?? 'gpt-5-mini';
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -64,7 +68,7 @@ async function callOpenAI(prompt, profile) {
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYSTEM },
-        { role: 'user', content: `Name: ${profile.name}\nCraft: ${profile.craft}\nCurrent palette: ${profile.palette ?? 'paper'} (keep it unless this request asks for a change)\nBrief: ${prompt}` },
+        { role: 'user', content: userBrief(profile, prompt, stylePreference) },
       ],
     }),
   });
@@ -77,7 +81,7 @@ async function callOpenAI(prompt, profile) {
   };
 }
 
-async function callOpenRouter(prompt, profile) {
+async function callOpenRouter(prompt, profile, stylePreference) {
   const model = process.env.LLM_MODEL ?? 'google/gemini-3.7-flash';
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -93,7 +97,7 @@ async function callOpenRouter(prompt, profile) {
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYSTEM },
-        { role: 'user', content: `Name: ${profile.name}\nCraft: ${profile.craft}\nCurrent palette: ${profile.palette ?? 'paper'} (keep it unless this request asks for a change)\nBrief: ${prompt}` },
+        { role: 'user', content: userBrief(profile, prompt, stylePreference) },
       ],
     }),
   });
@@ -108,7 +112,7 @@ async function callOpenRouter(prompt, profile) {
 }
 
 /** Deterministic fallback — no key, no network. Marked as such in usage. */
-function localFallback(prompt, profile) {
+function localFallback(prompt, profile, stylePreference) {
   const firstSentence = prompt.split(/[.!?\n]/).map((s) => s.trim()).filter(Boolean)[0] ?? profile.craft;
   const clean = (s) => s.slice(0, 200);
   const projects = [1, 2, 3].map((n) => ({
@@ -124,6 +128,7 @@ function localFallback(prompt, profile) {
     site: {
       tagline: clean(`${profile.craft} — ${firstSentence}`),
       bio: clean(prompt),
+      designDirection: stylePreference || `An editorial, image-led direction for ${profile.craft}, with project-specific color.`,
       fr: { tagline: clean(`${profile.craft} — ${firstSentence}`), bio: clean(prompt) },
     },
     projects,
@@ -136,25 +141,27 @@ function localFallback(prompt, profile) {
   };
 }
 
-export async function generateSite({ name, craft, prompt, palette }) {
+export async function generateSite({ name, craft, prompt, palette, stylePreference = '' }) {
   const provider = (process.env.LLM_PROVIDER ?? '').toLowerCase();
   const hasKey = Boolean(process.env.LLM_API_KEY);
 
   if (['anthropic', 'openai', 'openrouter'].includes(provider) && hasKey) {
       const result = provider === 'anthropic'
-        ? await callAnthropic(prompt, { name, craft })
+        ? await callAnthropic(prompt, { name, craft, palette }, stylePreference)
         : provider === 'openrouter'
-          ? await callOpenRouter(prompt, { name, craft })
-          : await callOpenAI(prompt, { name, craft });
+          ? await callOpenRouter(prompt, { name, craft, palette }, stylePreference)
+          : await callOpenAI(prompt, { name, craft, palette }, stylePreference);
       const { text, in: tokensIn, out: tokensOut } = result;
       const parsed = JSON.parse(text);
       if (!parsed.tagline || !parsed.bio || !Array.isArray(parsed.projects)) {
         throw new Error('bad shape');
       }
-      const explicitlyChangesPalette = /\b(?:palette|theme|th[eè]me|iris|forest|paper)\b/i.test(prompt);
-      const chosenPalette = explicitlyChangesPalette && ['paper', 'iris', 'forest'].includes(parsed.palette)
-        ? parsed.palette
-        : palette ?? 'paper';
+      const explicitlyChangesPalette = /\b(?:palette|theme|th[eè]me|iris|forest|paper|dark|sombre|light|clair|color|colour|couleur|bright)\b/i.test(`${prompt} ${stylePreference}`);
+      const chosenPalette = palette && !explicitlyChangesPalette
+        ? palette
+        : ['paper', 'iris', 'forest'].includes(parsed.palette)
+          ? parsed.palette
+          : palette ?? 'paper';
       const projects = parsed.projects.slice(0, 6).map((p, i) => ({
         title: String(p.title ?? `Project ${i + 1}`),
         role: String(p.role ?? craft),
@@ -175,6 +182,7 @@ export async function generateSite({ name, craft, prompt, palette }) {
           tagline: String(parsed.tagline).slice(0, 200),
           bio: String(parsed.bio).slice(0, 200),
           palette: chosenPalette,
+          designDirection: String(parsed.designDirection ?? stylePreference ?? 'A tailored editorial direction based on the creator’s craft and projects.').slice(0, 160),
           fr: {
             tagline: String(parsed.fr?.tagline ?? parsed.tagline).slice(0, 200),
             bio: String(parsed.fr?.bio ?? parsed.bio).slice(0, 200),
@@ -188,6 +196,6 @@ export async function generateSite({ name, craft, prompt, palette }) {
   // A configured LLM must never silently fall back to fake content on an API or
   // parsing error. The caller should surface the failure and not spend a credit.
   if (provider && hasKey) throw new Error(`Unsupported LLM provider: ${provider}`);
-  const fb = localFallback(prompt, { name, craft });
+  const fb = localFallback(prompt, { name, craft }, stylePreference);
   return { site: { palette, ...fb.site }, projects: fb.projects, usage: fb.usage };
 }
