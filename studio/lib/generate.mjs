@@ -151,6 +151,10 @@ export async function generateSite({ name, craft, prompt, palette }) {
       if (!parsed.tagline || !parsed.bio || !Array.isArray(parsed.projects)) {
         throw new Error('bad shape');
       }
+      const explicitlyChangesPalette = /\b(?:palette|theme|th[eè]me|iris|forest|paper)\b/i.test(prompt);
+      const chosenPalette = explicitlyChangesPalette && ['paper', 'iris', 'forest'].includes(parsed.palette)
+        ? parsed.palette
+        : palette ?? 'paper';
       const projects = parsed.projects.slice(0, 6).map((p, i) => ({
         title: String(p.title ?? `Project ${i + 1}`),
         role: String(p.role ?? craft),
@@ -170,7 +174,7 @@ export async function generateSite({ name, craft, prompt, palette }) {
         site: {
           tagline: String(parsed.tagline).slice(0, 200),
           bio: String(parsed.bio).slice(0, 200),
-          palette: ['paper', 'iris', 'forest'].includes(parsed.palette) ? parsed.palette : palette,
+          palette: chosenPalette,
           fr: {
             tagline: String(parsed.fr?.tagline ?? parsed.tagline).slice(0, 200),
             bio: String(parsed.fr?.bio ?? parsed.bio).slice(0, 200),
