@@ -1,54 +1,61 @@
-# Folioflash — Évaluation des coûts (ordres de grandeur, à valider)
+# Folioflash — Évaluation des coûts beta (à mesurer)
 
-> Base : infra existante (serveur Ubuntu + NPM + Cloudflare, cf. `camilleaubert-infra`),
-> pattern earlyreflect (Pages = 0 €), nano = orchestrateur uniquement (pas de build local).
-> Prix indicatifs EU 2026, HT. À re-mesurer en M1 avec 10 sites pilotes.
+> Décision : les portfolios clients sont hébergés sur le serveur personnel de Camille.
+> Les clients gardent et paient leurs domaines directement à leur registrar ; Folioflash
+> ne vend, n'achète ni ne transfère de domaine. Les montants ci-dessous ne sont pas un
+> tarif commercial : la beta vise le coût réel, à valider sur pilotes.
 
-## 1. Coûts fixes mensuels (M1, Phase A GitHub)
+## 1. Coûts fixes mensuels (serveur actuel)
 
 | Poste | Montant | Notes |
 |---|---|---|
-| Nano existant (amorti) | 0 € marginal | Studio léger (Node+SQLite) ; pas de MySQL dessus |
-| Nom de domaine vitrine (folioflash.site/.com) | ~1 €/mois | ~12-15 €/an |
-| GitHub Pages + Actions (≤ 20 sites) | 0 € | quotas publics/privés à surveiller |
-| Cloudflare (DNS) | 0 € | plan gratuit |
-| Email transactionnel (lien magique, factures) | 0-5 € | provider type Resend/Brevo, volume faible |
-| **Total fixe M1** | **~1-6 €/mois** | |
+| Serveur Lightsail personnel | ~15 €/mois | Coût total existant partagé ; quote-part Folioflash à mesurer |
+| NPM + Cloudflare DNS | 0 € marginal connu | Ressources existantes ; frais ops/support à compter |
+| GitHub | 0 € runtime client | Utilisé pour le code produit, pas pour héberger les portfolios clients |
+| Email transactionnel | 0-5 €/mois | À choisir pour auth et notifications |
+| Stockage et sauvegardes | À mesurer | Builds, images optimisées, backup hors serveur |
+| **Total fixe** | **À établir** | Ne pas considérer le coût du serveur partagé comme nul |
 
 ## 2. Coût marginal par site
 
 | Poste | Coût unitaire | Facturé |
 |---|---|---|
-| Génération V1 (LLM, modèle pas cher, ~50-150k tokens in/out) | ~0,30-1,50 € | 0 € (appel) |
-| Régénération / modif (même ordre) | ~0,20-1,00 € | 1 crédit ≈ 3-5 € |
-| Publication (build Pages) | ~0 € | prix publication (ex. 29 €) |
-| Domaine custom (.com/.fr, an 1) | ~10-15 € | prix coûtant + ~5 € frais |
-| Hébergement mutualisé an 1 | ~0 € (Pages) | inclus publication |
-| Renouvellement hébergement (Phase B, serveur dédié amorti /100 sites) | ~0,50-1,50 €/an/site | ~9-19 €/an |
-| Stripe | 1,5 % + 0,25 € (EU) | répercuté dans les prix |
+| Génération V1 observée | ~0,005 € LLM | Quelques appels OpenRouter seulement ; échantillon trop petit pour fixer le tarif |
+| Modification IA | À mesurer par job | Tokens + modèle ; devis en euros avant confirmation |
+| Build Astro | CPU/RAM/temps à mesurer | Builds séquentiels sur nano ; capacité à inclure |
+| Images | CPU + stockage à mesurer | Conversion, variantes, volume optimisé, trafic et backup |
+| Domaine client | 0 € facturé par Folioflash | Le client paie directement son registrar |
+| Hébergement | Quote-part serveur à établir | Stripe possible au coût mesuré, prix annuel pas encore fixé |
+| Stripe | Selon compte et moyen de paiement | Intégrer les frais réels dans l'estimation |
 
-Exemple : 10 potes en gratuit → coût LLM ~5-15 € one-shot, hosting 0 €. Soutenable comme investissement galerie.
+Mesures pilotes : une V1 de Léa a coûté environ 0,005 € en LLM et une modification ~0,004 €. Ces chiffres n'incluent ni Stripe, ni serveur, ni stockage, ni sauvegardes.
 
 ## 3. Scénarios
 
 | Échelle | Coût mensuel | Revenu indicatif | Marge |
 |---|---|---|---|
-| 10 sites (8 gratuits, 2 payants à 29 €) | ~10 € | ~58 € one-shot | ~80 % |
-| 100 sites (30 payants + crédits ~150 €) | ~30-50 € (orga GitHub éventuelle + serveur) | ~1 000 € | ≥ 70 % |
-| 1 000 sites | Phase B obligatoire (serveur 20-60 €/mois) | ~30 k€ cumulé | ≥ 70 % si crédits bien calibrés |
+| 5 sites pilotes | Quote-part des ~15 €/mois + jobs + backup | Tarif beta au coût estimé | Mesurer capacité et coût réel |
+| 25 sites | Mesurer RAM, CPU, stockage, trafic, support | Pas d'extrapolation linéaire | Migrer/upgrade avant saturation |
+| 100+ sites | Serveur/stockage dédiés probablement nécessaires | Nouveau devis infra | Ne pas promettre sur le nano actuel |
 
-## 4. Prix TEST — prix coûtant (décision 2026-10-05)
+## 4. Facturation beta — coût réel, tarifs à décider
 
-Objectif : pas cher, pour tester. On facture au coût réel, sans marge sauf Stripe incompressible.
+Objectif : lancement pilote pas cher et au coût réel. Aucun tarif fixe ne doit être
+présenté comme acté tant que la quote-part d'hébergement, stockage, sauvegardes et
+frais Stripe ne sont pas mesurés.
 
-- Publication : **29 € TTC** (tout compris : génération V1 + build + SEO/llms + connexion domaine + 1 an d'hébergement sous-domaine ou domaine connecté).
-- Crédit modif IA : **~2 € / crédit** (1 régénération standard = 1 crédit, grosse refonte = 2-3, devis affiché avant le job).
-- Domaine acheté pour le client : **prix coûtant + 5 € de frais**.
-- Renouvellement hébergement : **12 €/an** (sous-domaine) / **19 €/an** (domaine custom).
-- Potes pilotes : **gratuit** (V1 + publication offerte en échange de la galerie publique).
+- Stripe : paiement publication/hébergement et usage IA ; choisir avant lancement
+  entre crédits prépayés et débit par job.
+- IA : estimation en euros avant lancement ; journal réel de coût par appel ; échec
+  de génération = pas de débit client ou remboursement idempotent.
+- Domaine : aucun prélèvement Folioflash ; le créateur paie son registrar directement.
+- Les amis peuvent être pilotes gratuits, avec accord explicite pour présenter leur
+  portfolio dans la galerie.
 
-On re-mesure après 50 jobs et on ajuste — les prix ci-dessus sont l'hypothèse de test.
+Revoir les tarifs après 50 générations/modifications et test de charge/restauration.
 
 ## 5. À mesurer en M1
 
-Logger par job : tokens in/out, modèle, durée, coût estimé → tableau de bord + ajustement prix crédits après 50 jobs.
+Logger par job/site : tokens, modèle, coût fournisseur, frais Stripe, durée, ressources
+build, octets entrants/sortants, taille des assets après optimisation, stockage total,
+trafic, sauvegardes et coût support. Calculer le coût par site actif avant de fixer le prix.

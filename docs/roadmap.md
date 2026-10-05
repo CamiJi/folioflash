@@ -1,26 +1,28 @@
 # Folioflash — Roadmap
 
-## M0 — Cadrage (cette semaine)
-- [x] CDC v1 + architecture + coûts + marketing (ce repo)
-- [ ] Valider prix (29 € / crédits / renouvellement) + créer compte Stripe test
-- [ ] Réserver domaine vitrine + créer orga GitHub dédiée (pas le compte perso à terme)
-- [ ] Lister 8-12 potes pilotes gratuits
+## M0 — Cadrage produit (mise à jour)
+- [x] CDC, architecture et coûts mis à jour : serveur personnel, domaines apportés par les créateurs, coût réel beta
+- [x] Style client choisi par le LLM quand le brief ne précise rien ; Folioflash Studio/marketing reprend les tokens Nestor
+- [ ] Fixer prix exact après instrumentation serveur, stockage, Stripe et tests pilotes
 
-## M1 — Studio + Pages live (en cours)
-- [x] Template-folio dérivé d'earlyreflect (Astro 6, 1 collection générique, 3 palettes, FR/EN, `llms.txt`, `deploy.yml` Pages)
-- [x] Pipeline V1 réel OpenRouter : prompt → contenu FR/EN + projets → build Astro live (test Léa : 3 projets correctement extraits, coût ~0,004 €)
-- [x] Régénération au prompt (texte + dictée voix Web Speech API FR/EN) : `POST /api/sites/:id/edit` → rebuild immédiat, 1 crédit, coût tokens loggé
-- [ ] Auth lien magique + Stripe test (29 € publication, crédits ~2 €) + push repo client → Pages
-- [x] Studio déployé sur `https://folioflash.camilleaubert.com` (nano, Basic Auth provisoire sur Studio/API, démo publique `/demo/`)
-- [x] Paquet déploiement nano (Dockerfile Node 22 + compose sur `travel-network` + runbook `deploy/`)
-- [ ] Push vers repo client → GitHub Actions/Pages + CNAME auto (pour l'instant seul `/demo/` est public)
-- [ ] Stripe Checkout publication + crédits + webhooks + factures
-- [ ] 10 sites pilotes (dont potes gratuits) + mesure Lighthouse + coûts réels
+## M1 — Produit beta auto-hébergé (en cours)
+- [x] Template portfolio Astro + Tailwind, responsive FR/EN, preview `/demo/` ; identité client proposée par LLM si style absent
+- [x] Génération OpenRouter et régénération texte/voix ; coût LLM observé ≈0,005 € par job test
+- [x] Studio sur serveur personnel ; Basic Auth provisoire, démo accessible
+- [ ] Landing + Studio Folioflash aux couleurs Nestor (noir/crème/or, Inter/Playfair Display), sans copier les textes de Nestor
+- [ ] Auth réelle, comptes et persistance SQLite des sites/jobs/crédits
+- [ ] Upload d'images : contrôles, optimisation WebP/variantes, retrait EXIF, quotas ; ne pas conserver les originaux
+- [ ] Design inference structuré (palette/layout/typo), modifiable via prompt, sans code arbitraire
+- [ ] Hébergement multi-sites sur le nano : routage Host, DNS du domaine client, provisionnement NPM/TLS automatisé
+- [ ] Spike sécurité/capacité NPM API, builds concurrents, stockage, sauvegardes et restauration ; fixer le plafond de pilotes
+- [ ] Stripe test : publication/hébergement + estimation IA préalable, webhooks idempotents, ledger et remboursement en cas d'échec
+- [ ] 5-10 pilotes sur leurs propres domaines, test de charge et mesure des coûts réels
 
 ## M2 — Industrialisation
-- [ ] 3 templates, rollback UI, OAuth GitHub/Google, quotas anti-abus
-- [ ] Robot LinkedIn + blog régulier
-- [ ] Phase B : sortie GitHub → build Docker sur serveur (NPM/Cloudflare), si limites Pages
+- [ ] Historique et rollback, quotas et isolation renforcés, migrations/backup automatisés
+- [ ] Migration vers hébergeur dédié si RAM, CPU, stockage ou trafic du serveur personnel approchent les seuils
+- [ ] Blog SEO FR/EN et robot LinkedIn avec validation humaine
+- [ ] Autres langues après validation de la demande
 
 ## M3 — Scale
-- [ ] ES/DE/IT, marketplace de templates, API/affiliation, support DNS assisté
+- [ ] Multi-templates, langues supplémentaires, support DNS amélioré et partenariats

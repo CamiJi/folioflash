@@ -1,64 +1,87 @@
-# Folioflash — Architecture (reprise earlyreflect)
+# Folioflash — Architecture cible (serveur personnel)
 
 ## 1. Ce qu'on réutilise tel quel
 
-`sideprojects/earlyreflect/` est le gabarit prouvé :
+`sideprojects/earlyreflect/` reste une référence pour la qualité du build Astro,
+la structure de contenu, l'optimisation d'images et la découvrabilité — pas pour
+l'hébergement client. Décision : les portfolios clients sont publiés sur le serveur
+personnel de Camille avec le domaine que chaque créateur possède déjà.
 
 - **Astro 6 + Tailwind 4 + TS**, 100 % statique, `npm run build → dist/`.
-- **`config-domain.mjs`** : `SITE_URL` + `BASE_PATH` — le seul fichier à changer pour brancher un domaine.
-- **`.github/workflows/deploy.yml`** : push `main` → `npm ci` → `npm run build` → `deploy-pages@v4`. Concurrency `pages`, `cancel-in-progress: true`.
+- **Astro + Tailwind** : génération de sites statiques légers et reproductibles.
 - **Contenu en collections Markdown bilingues** `src/content/projects/{en,fr}/{slug}.md` + `src/data/site.ts` + `src/data/pages.ts` + `src/i18n/ui.ts`.
 - **Images** : `scripts/optimize-image.mjs` (brut → WebP responsive) + composants `WpImage`, façades `LiteYouTube/LiteVimeo/SoundCloudFacade` (iframe au clic), `AudioPlayer` natif.
 - **Discoverability IA** : `llms.txt`, `llms-full.txt`, `persona.json` générés depuis le contenu, crawlers IA autorisés.
 - **i18n** : EN à la racine, FR sous `/fr/`, `prefixDefaultLocale: false`.
-- **Coût** : 0 € hosting (GitHub Pages) + HTTPS Let's Encrypt.
+- Les workflows GitHub peuvent déployer le code du produit, mais GitHub Pages n'héberge pas les portfolios clients.
 
 ## 2. Template Folioflash V1 (1 seul en M1)
 
-Dérivé d'earlyreflect, simplifié :
+Dérivé du template Folioflash déjà amorcé ; un seul modèle Astro/Tailwind au lancement :
 
 ```
 template-folio/
-├── config-domain.mjs        # par client
-├── src/content/projects/{en,fr}/  # 0-6 projets générés par l'IA
-├── src/data/site.json       # profil : nom, métier, bio, socials, email
+├── config-domain.mjs        # domaine apporté par le client, base de build
+├── src/content/projects/    # projets structurés et variantes EN/FR
+├── src/data/site.json       # profil, style proposé, contact et liens
 ├── src/pages/               # home, work, about, contact (FR/EN)
 ├── src/styles/global.css    # 3 palettes au choix (tokens CSS)
-└── scripts/                 # optimize-image, audit, gen-og, gen-llms
+└── scripts/                 # audit, gen-og, gen-llms ; optimisation au Studio
 ```
 
-L'IA ne génère **que** : `site.json`, fiches projets MD, palette choisie, assets optimisés. Jamais de code arbitraire en M1 (garde-fou coût + sécu).
+Le LLM fournit un objet structuré validé par le serveur : profil, projets FR/EN,
+palette, typographies/layout issus d'options autorisées. Si le brief ne précise pas
+de style, il propose une direction adaptée au métier et aux projets. Il ne produit
+jamais de code arbitraire.
 
-## 3. Pipeline live-only M1 (Phase A — GitHub)
+## 3. Pipeline de génération et publication
 
 ```
-Studio (nano) → crée repo client (orga Folioflash)
-  → IA commit (contenu + assets WebP)
-  → push main → GitHub Actions build → Pages live
-  → CNAME si domaine custom
+Studio → prompt + assets temporaires
+  → validation + optimisation d'images (WebP, redimensionnement, EXIF supprimé)
+  → LLM → contenu et style structurés
+  → build Astro limité en ressources, dans une file de jobs
+  → validation des pages/liens
+  → publication atomique : garder l'ancien build si le nouveau échoue
+  → serveur statique sélectionne le site selon le Host du domaine client
 ```
 
-- Pas d'environnement preview en M1 (assumé, cf. CDC §3.3).
-- Chaque job = 1 commit traçable → rollback = revert (M2 exposé en UI).
-- Quotas : 1 site/user en gratuit, builds sérialisés par repo (concurrency pages).
+- Preview temporaire dans le Studio ; pas de sous-domaine Folioflash remis au client.
+- DNS reste chez le client : A/AAAA vers le serveur et éventuellement CNAME `www`.
+- Après vérification DNS, provisionner automatiquement routage et certificat HTTPS.
+- Garder chaque dernière release intacte ; publier par bascule atomique et conserver
+  au minimum une release de rollback.
 
-Limites connues : orga GitHub perso à terme à éviter → créer une **orga dédiée** dès ~20 sites ; au-delà, Phase B.
+Le routage TLS multi-domaines via NPM/API doit faire l'objet d'un spike : l'API
+nécessite des identifiants de service à protéger. Évaluer permissions minimales,
+création/renouvellement de certificats, suppression de hosts et récupération après
+échec avant de l'automatiser pour des clients.
 
-## 4. Phase B (M2+) — sortie GitHub vers nano/serveur
+## 4. Hébergement et capacité
 
-Même image que `camilleaubert-infra` :
+- M1 : même Lightsail/NPM/Cloudflare que les projets personnels ; stockage par site
+  sur volume dédié, conteneur statique isolé du Studio et du proxy.
+- La contrainte importante est la capacité réelle, pas le coût théorique : le nano
+  fait environ 2 Go RAM et Folioflash + Nestor + portfolio partagent déjà le serveur.
+- Sérialiser les builds, fixer heap/timeout, limites disque par compte, nettoyage des
+  temporaires et sauvegarde des builds/données.
+- Tester charge HTTP, disque, RAM et restauration avant d'accepter plus que quelques
+  pilotes. Définir un seuil de migration vers serveur dédié.
+- Garder les images Docker, volumes, DNS et base configurables pour migrer plus tard.
 
-- Build Docker (Node builder → Nginx Alpine), reverse proxy **NPM** + **Cloudflare** DNS.
-- Le Studio pousse le `dist/` (ou le repo) sur le serveur, `docker compose up -d --build` par site ou mutualisé par vhost.
-- Avantage : pas de limite Pages, domaines illimités, logs/headers maîtrisés. Coût : ~nano actuel puis instance dédiée (voir `couts.md`).
+## 5. Studio sur le serveur personnel
 
-## 5. Studio sur nano (M1 minimal)
+- Node 22 + SQLite (persistée) pour comptes, sites, domaines, jobs, paiements et crédits.
+- Worker de build isolé et borné ; stockage d'images d'abord local avec quota et backup.
+- Pipeline upload : contrôles MIME et signature fichier, dimensions/poids, conversion
+  WebP, variantes responsive, EXIF supprimés ; originaux traités en zone temporaire,
+  puis supprimés. SVG non fiable rejeté en V1.
+- Stripe Checkout + webhooks signés et idempotents ; journal de transactions et
+  consommation IA traçable par job.
+- Auth temporaire Basic Auth remplacée par authentification produit avant ouverture.
+- Secrets d'API et NPM uniquement dans variables/fichiers runtime protégés, jamais Git.
 
-- Node 22 + SQLite (1 DB) + stockage fichiers local (quota/user).
-- Rôles : auth lien magique, CRUD sites, file d'jobs IA (1 worker, timeout 5 min), webhooks Stripe, création repo via token, vérif DNS (dig/CNAME), logs par job.
-- Preuve de coût : le nano actuel (t3.nano 2 vCPU / ~0.5 Go RAM) **ne build pas** ; il orchestre seulement — les builds tournent sur GitHub Actions en Phase A. Aucun MySQL/Laravel sur nano.
-- Secrets : `.secrets.env` local + variables d'env serveur, jamais commité (`.gitignore` déjà en place).
+## 6. Ce qu'on ne fait pas au lancement
 
-## 6. Ce qu'on ne fait pas en M1
-
-Multi-templates, preview par PR, édition visuelle drag&drop, OAuth social complet, analytics embarqué, langues au-delà de FR/EN.
+Enregistrement/achat de domaines, délégation/transfert DNS, GitHub Pages par client,
+éditeur drag&drop, multi-templates, langues au-delà de FR/EN, analytics non essentiels.

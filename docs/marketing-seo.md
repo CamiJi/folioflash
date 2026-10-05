@@ -2,16 +2,18 @@
 
 ## 1. Nom
 
-**Folioflash** : folio (portfolio) + flash (vitesse, éclair). Court, prononçable FR/EN, logo éclair/livre facile.
-À valider : dispo `.com` / `.site` / `.io` + recherche marque INPI/EUIPO avant tout print.
+**Folioflash** : folio (portfolio) + flash (vitesse, éclair). Court, prononçable FR/EN.
+L'URL vitrine actuelle est un sous-domaine de `camilleaubert.com` ; nom de domaine
+propre et recherche de marque resteront à décider pour la marque Folioflash elle-même.
 
 Alternatives écartées : Minifolio (trop générique), Quickreflect (trop proche d'earlyreflect).
 
-## 2. Design vitrine + template
+## 2. Identité Folioflash et portfolios clients
 
-- Vitrine et template partagent les tokens : fond paper, 1 couleur brand, typo auto-hébergée, 0 JS initial.
-- 3 palettes V1 au choix dans le Studio (neutre, iris/nuit, brand cálido type `#007190` repris d'earlyreflect).
-- Galerie : 8-12 exemples réels (potes en gratuit, tous métiers : sound, photo, dev, design, vidéo) avec stack affichée (« Astro, 42 Ko JS, 100 Lighthouse ») — argument vente n°1.
+- Landing + Studio : charte Nestor adaptée à la marque produit (noir `#0B0B0C`, crème `#F5F3EF`, or doux `#C6A66B`, Playfair Display + Inter). Détails dans `brand-system.md`.
+- Sites clients : identité autonome. Si le créateur n'indique pas de style, le LLM propose un thème adapté au métier, aux projets et aux assets ; sa proposition est modifiable avant publication.
+- Galerie : exemples réels de pilotes, tous métiers, avec autorisation explicite. N'afficher des métriques Lighthouse/poids qu'après mesure réelle.
+- Pas d'offre de domaine : chaque client garde le sien et paie son registrar ; Folioflash explique le pointage DNS vers le serveur.
 
 ## 3. Contenu SEO (blog)
 

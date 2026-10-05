@@ -17,23 +17,29 @@ la tentative échouée rembourse le crédit. Sites/crédits sont persistés dans
 |---|---|---|
 | GET | `/` | formulaire (prompt texte **+ dictée voix** Web Speech API FR/EN) |
 | GET | `/api/health` | `{ ok, sites }` |
-| POST | `/api/sites` | crée le site (`draft`, **3 crédits test**) |
+| POST | `/api/sites` | crée le site (`draft`, **3 crédits de test locaux**) |
 | POST | `/api/sites/:id/v1` | job V1 **gratuit** : génère → build Astro → `live`, log tokens/coût |
 | POST | `/api/sites/:id/edit` | `{ prompt }` → **1 crédit**, rebuild + redéploiement immédiat |
 | GET | `/api/sites/:id` | site + crédits |
 
 | Method | Route | Body → Response |
-|---|---|---|
-| GET | `/` | intake form (HTML) |
-| GET | `/api/health` | `{ ok, sites }` |
-| GET | `/api/sites` | list (in-memory) |
-| POST | `/api/sites` | `{ name, craft, prompt, palette }` → `201 { id, slug, status: 'queued', costEstEur }` |
+| GET | `/demo/` | latest generated demo (public; **not** a customer domain) |
 
-Every POST appends to `data/jobs.jsonl` (git-ignored) — the raw material for `docs/couts.md §5` cost measurement.
+`data/state.json` persists pilot site state; `data/jobs.jsonl` records jobs/costs.
+The current test credit map is not a payment ledger and must be replaced before launch.
+
+## Not production-ready yet
+
+- Basic Auth is only a temporary gate; real customer accounts/authentication remain to build.
+- Upload UI and server-side asset optimization are not implemented yet.
+- No Stripe, DNS/domain onboarding, multi-site host routing or automated certificate provisioning yet.
+- No customer receives or delegates a Folioflash subdomain. They will connect their own domain.
 
 ## Next (M1 order)
 
-1. Magic-link auth (email) + `users` table (`schema.sql` ready).
-2. Real V1 job: prompt → `site.json` + project `.md` + optimized images → commit to client repo (org `Folioflash-*`) → Pages live.
-3. Stripe test: Checkout publication 29 € + credits ~2 € + webhooks → `credits` update.
-4. DNS check endpoint (`GET /api/sites/:id/dns`) before custom-domain go-live.
+1. Rebrand landing + Studio with Folioflash/Nestor product tokens.
+2. Real account auth and durable SQLite records for users, domains, builds and billing.
+3. Upload validation/optimization (WebP, responsive sizes, EXIF removal; discard originals).
+4. Multi-site static hosting on the personal server and automated DNS/TLS onboarding for customer-owned domains.
+5. Stripe test-mode payment flow, cost estimates, idempotent webhooks and billing ledger.
+6. Pilot capacity, backups, restoration and cost/load tests before inviting more users.

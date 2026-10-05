@@ -1,47 +1,46 @@
-# ⚡ Folioflash — prompt-to-portfolio in minutes
+# Folioflash — prompt-to-portfolio in minutes
 
-> Type a prompt, drop your assets, get a fast, lightweight portfolio. Free V1. Live in minutes. At-cost pricing while in beta.
+> Décris ton activité, ajoute tes images si tu en as, obtiens un portfolio Astro rapide. Beta au coût réel.
 
-**Folioflash** turns a simple prompt + photos/texts/links into a static **Astro** portfolio site: 0 JS by default, WebP images, video facades, 95+ Lighthouse, FR/EN, SEO + `llms.txt` included.
+**Folioflash** vise à transformer un brief en portfolio **Astro + Tailwind** statique et bilingue. Le LLM doit proposer une direction artistique si le brief n'en précise pas ; les assets devront être optimisés côté serveur au chargement.
 
 - 🇫🇷 Version française : voir `docs/cahier-des-charges.md`
-- 📐 Spec : `docs/cahier-des-charges.md` · Architecture : `docs/architecture.md` · Design : `docs/design-system.md` · Costs : `docs/couts.md` · Marketing : `docs/marketing-seo.md` · Roadmap : `docs/roadmap.md`
-- 🧱 Build : `template-folio/` (Astro template, M1) · `studio/` (orchestrator skeleton, M1)
+- 📐 CDC : `docs/cahier-des-charges.md` · Architecture : `docs/architecture.md` · Marque Folioflash : `docs/brand-system.md` · Template portfolio : `docs/design-system.md` · Coûts : `docs/couts.md` · Roadmap : `docs/roadmap.md`
+- 🧱 Code : `template-folio/` (Astro + Tailwind) · `studio/` (Studio Node) · `deploy/` (nano)
 
-![status](https://img.shields.io/badge/status-M0%20framing-blue)
+![status](https://img.shields.io/badge/status-M1%20prototype-orange)
 ![stack](https://img.shields.io/badge/stack-Astro%206%20%E2%80%A2%20Tailwind%204%20%E2%80%A2%20Stripe-orange)
 ![i18n](https://img.shields.io/badge/i18n-FR%20%2F%20EN-green)
 ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 ## How it works
 
-1. **Describe** — prompt + structured fields (name, craft, bio, 3–6 projects, socials) + assets (≤ 20 MB in M1).
-2. **Get your free V1** — one template, `you.folioflash.site`, Folioflash badge. No card. ~5 min.
-3. **Publish (€29 test price, at cost)** — badge removed, SEO on, custom domain connected, 1 year hosting included.
-4. **Iterate at cost** — each AI edit = 1 credit at token cost (~€2), quoted before you confirm. Push = live, no preview in M1.
+1. **Décris** ton portfolio par texte ou par la voix ; l'upload d'images reste à construire.
+2. **Prévisualise** la V1 dans le Studio. Le client n'obtiendra pas de sous-domaine Folioflash.
+3. **Publie** avec ton propre domaine : tu le gardes chez ton registrar et pointes les DNS vers notre serveur (parcours à construire).
+4. **Modifie** ton site par prompt ; estimation avant facturation à construire.
 
 ## Stack (proven on `earlyreflect`)
 
-- Astro 6 + Tailwind 4 + TypeScript, 100% static (`dist/`)
-- 1 repo per site → GitHub Actions → GitHub Pages live (then Docker/NPM on our server after beta)
-- `config-domain.mjs` per site, Markdown collections FR/EN, `optimize-image.mjs` → WebP, `llms.txt` / `persona.json` per build
+- Astro + Tailwind + TypeScript, builds statiques publiés sur le serveur personnel
+- Domaines clients conservés chez leurs registrars ; routage et TLS provisionnés après vérification DNS
+- Optimisation des uploads et paiement Stripe restent à implémenter ; aucun code client arbitraire généré par LLM
+- Landing/Studio Folioflash : identité Nestor (noir, crème, or ; Inter + Playfair Display)
 
-## Test pricing (beta, at cost)
+## Prix beta
 
-| What | Price |
+| Poste | Décision |
 |---|---|
-| V1 (1 template, subdomain, badge) | **Free** |
-| Publish (live + SEO + domain connect + 1 yr hosting) | **€29** |
-| AI edit credit (1 standard regen = 1 credit) | **~€2 / credit** |
-| Domain bought for you | **cost + €5 fee** |
+| Domaine | Acheté et conservé par le client auprès de son registrar ; Folioflash ne facture rien |
+| IA, publication, hébergement | Objectif : facturation Stripe au coût réel ; parcours et tarifs à implémenter après instrumentation |
 
-Details + margins in `docs/couts.md`. Prices will move after 50 measured jobs — this is a test.
+Voir `docs/couts.md`. Le nano actuel n'est pas une capacité illimitée : nombre de pilotes plafonné après test de charge.
 
 ## Status / roadmap
 
-- **M0** (now): framing only, no runnable code — this repo.
-- **M1**: minimal Studio on our nano (magic-link auth, prompt+assets, 1 template, Stripe test, live-only pipeline) + 10 pilot sites.
-- **M2**: 3 templates, rollback UI, LinkedIn robot, Docker hosting if Pages limits hit.
+- **Prototype** : Studio, génération LLM et template visibles sur le serveur.
+- **M1** : branding Folioflash, vraie auth, optimisation assets, multi-sites/domaines clients, Stripe test/live, mesure capacité.
+- **M2** : rollback, industrialisation et migration serveur si capacité atteinte ; blog SEO et LinkedIn validés par humain.
 
 See `docs/roadmap.md`.
 
