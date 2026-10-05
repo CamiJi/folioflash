@@ -10,8 +10,8 @@ RUN cd template-folio && npm ci --no-audit --no-fund
 
 COPY studio/ ./studio/
 COPY template-folio/ ./template-folio/
-RUN rm -rf template-folio/node_modules \
-  && mkdir -p studio/data \
+RUN mkdir -p studio/data \
+  && test -d template-folio/node_modules/astro \
   && node --check studio/server.mjs
 
 ENV PORT=4322 NODE_BIN=node TEMPLATE_DIR=/app/template-folio
