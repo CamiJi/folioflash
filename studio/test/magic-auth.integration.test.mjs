@@ -43,7 +43,7 @@ async function requestLoginLink(baseUrl, email, captureFile) {
   const body = await response.json();
   assert.match(body.message, /Si cette adresse/);
   const message = JSON.parse(readFileSync(captureFile, 'utf8'));
-  const link = message.text.match(/https:\/\/\S+/)?.[0];
+  const link = (message.text ?? message.textContent).match(/https:\/\/\S+/)?.[0];
   assert.ok(link, 'mock email should contain a magic link');
   return new URL(link).searchParams.get('token');
 }
@@ -84,6 +84,9 @@ test('magic links create isolated accounts, one-time sessions and logout', async
       RESEND_API_KEY: 'test-resend-key-not-real',
       MAIL_FROM: 'studio@example.test',
       SESSION_SECRET: 'test-secret-at-least-thirty-two-characters-long',
+      EMAIL_PROVIDER: 'brevo',
+      BREVO_API_KEY: 'test-brevo-key-not-real',
+      RESEND_API_KEY: '',
       STUDIO_DATA_DIR: testDir,
       TEST_EMAIL_CAPTURE_FILE: captureFile,
       LLM_PROVIDER: '',
