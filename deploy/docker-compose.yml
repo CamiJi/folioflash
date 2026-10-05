@@ -5,6 +5,14 @@ services:
       dockerfile: deploy/Dockerfile
     container_name: folioflash-studio
     restart: unless-stopped
+    env_file:
+      - .env # Create on nano, chmod 600; never commit.
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER:-openrouter}
+      LLM_MODEL: ${LLM_MODEL:-google/gemini-3.7-flash}
+      LLM_API_KEY: ${LLM_API_KEY:?Set LLM_API_KEY in deploy/.env}
+      STUDIO_USER: ${STUDIO_USER:?Set STUDIO_USER in deploy/.env}
+      STUDIO_PASSWORD: ${STUDIO_PASSWORD:?Set STUDIO_PASSWORD in deploy/.env}
     ports:
       - "127.0.0.1:4322:4322" # local test via SSH only — public traffic goes through NPM
     volumes:

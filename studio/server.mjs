@@ -8,15 +8,40 @@
  * TODO(M1): magic-link auth, Stripe webhooks, push to per-client GitHub repo + Pages.
  */
 import { createServer } from 'node:http';
-import { mkdirSync, appendFileSync, readFileSync, existsSync, statSync } from 'node:fs';
+import { timingSafeEqual } from 'node:crypto';
+import { mkdirSync, appendFileSync, readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { runJob } from './lib/pipeline.mjs';
 
 const PORT = Number(process.env.PORT ?? 4322);
-const sites = new Map();
-const credits = new Map(); // email/name → balance (test: 3 free edits per site owner)
+const STUDIO_USER = process.env.STUDIO_USER ?? '';
+const STUDIO_PASSWORD = process.env.STUDIO_PASSWORD ?? '';
+const dataDir = new URL('./data/', import.meta.url);
+const stateFile = new URL('./data/state.json', import.meta.url);
+mkdirSync(dataDir, { recursive: true });
+let savedState = { sites: [], credits: [] };
+try {
+  if (existsSync(stateFile)) savedState = JSON.parse(readFileSync(stateFile, 'utf8'));
+} catch {
+  console.error('[state] unable to parse state.json; starting with empty state');
+}
+const sites = new Map(savedState.sites ?? []);
+const credits = new Map(savedState.credits ?? []); // test: 3 free edits per site owner
 let lastLiveDir = null; // abs path of the most recent live dist/ — served on /demo
-let seq = 0;
+let seq = Math.max(0, ...[...sites.keys()].map((id) => Number(id.replace('site_', '')) || 0));
+for (const site of [...sites.values()].reverse()) {
+  if (site.status === 'live' && site.distDir) {
+    const candidate = path.resolve(new URL('./', import.meta.url).pathname, site.distDir);
+    if (existsSync(candidate)) {
+      lastLiveDir = candidate;
+      break;
+    }
+  }
+}
+
+function saveState() {
+  writeFileSync(stateFile, `${JSON.stringify({ sites: [...sites], credits: [...credits] }, null, 2)}\n`, { mode: 0o600 });
+}
 
 function logJob(entry) {
   mkdirSync(new URL('./data/', import.meta.url), { recursive: true });
@@ -140,6 +165,28 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost');
   const m = url.pathname.match(/^\/api\/sites\/([^/]+)(\/(v1|edit))?$/);
 
+  // The portfolio demo stays public. The prompt UI and write APIs are protected
+  // before any paid LLM key is enabled; HTTP Basic Auth is handled by browsers.
+  if ((url.pathname === '/' || url.pathname.startsWith('/api/')) && STUDIO_USER && STUDIO_PASSWORD) {
+    const auth = req.headers.authorization ?? '';
+    const encoded = auth.startsWith('Basic ') ? auth.slice(6) : '';
+    let supplied = '';
+    try {
+      supplied = Buffer.from(encoded, 'base64').toString('utf8');
+    } catch {
+      supplied = '';
+    }
+    const expected = `${STUDIO_USER}:${STUDIO_PASSWORD}`;
+    const a = Buffer.from(supplied);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
+      res.statusCode = 401;
+      res.setHeader('WWW-Authenticate', 'Basic realm="Folioflash Studio", charset="UTF-8"');
+      res.end('Authentication required');
+      return;
+    }
+  }
+
   if (req.method === 'GET' && url.pathname === '/') {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.end(FORM);
@@ -176,6 +223,7 @@ const server = createServer(async (req, res) => {
       };
       sites.set(id, site);
       credits.set(id, 3); // test: 3 free edits, V1 build itself is free
+      saveState();
       send(res, 201, { ...site, credits: 3 });
     } catch (err) {
       send(res, 400, { error: err.message });
@@ -214,19 +262,25 @@ const server = createServer(async (req, res) => {
         credits.set(m[1], balance - 1);
       }
       site.status = 'building';
+      saveState();
       const result = await runJob({
         slug: site.slug,
         kind,
         profile: site,
-        prompt,
+        prompt: kind === 'edit'
+          ? `${site.prompt}\n\nRequested update: ${prompt}`
+          : prompt,
       });
       site.status = result.status;
       site.distDir = result.distDir;
       if (result.absDistDir) lastLiveDir = result.absDistDir;
+      saveState();
       logJob({ kind: `${kind}-request`, siteId: m[1], slug: site.slug, ...result.usage });
       send(res, 200, { ...site, credits: credits.get(m[1]) ?? 0, usage: result.usage });
     } catch (err) {
       site.status = 'failed';
+      if (kind === 'edit') credits.set(m[1], (credits.get(m[1]) ?? 0) + 1);
+      saveState();
       logJob({ kind: `${kind}-request`, siteId: m[1], status: 'failed', error: err.message });
       send(res, 500, { error: err.message, credits: credits.get(m[1]) ?? 0 });
     }

@@ -14,6 +14,7 @@
 const DEFAULT_PRICES = {
   anthropic: { in: 1.0, out: 5.0 }, // €/1M — override via env, re-measured in couts.md §5
   openai: { in: 2.0, out: 8.0 },
+  openrouter: { in: 0, out: 0 }, // Use provider-reported cost; don't guess model pricing.
   local: { in: 0, out: 0 },
 };
 
@@ -75,6 +76,36 @@ async function callOpenAI(prompt, profile) {
   };
 }
 
+async function callOpenRouter(prompt, profile) {
+  const model = process.env.LLM_MODEL ?? 'google/gemini-3.7-flash';
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${process.env.LLM_API_KEY}`,
+      'HTTP-Referer': 'https://folioflash.camilleaubert.com',
+      'X-Title': 'Folioflash',
+    },
+    body: JSON.stringify({
+      model,
+      usage: { include: true },
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: SYSTEM },
+        { role: 'user', content: `Name: ${profile.name}\nCraft: ${profile.craft}\nBrief: ${prompt}` },
+      ],
+    }),
+  });
+  if (!res.ok) throw new Error(`openrouter ${res.status}`);
+  const json = await res.json();
+  return {
+    text: json.choices?.[0]?.message?.content ?? '',
+    in: json.usage?.prompt_tokens ?? 0,
+    out: json.usage?.completion_tokens ?? 0,
+    providerCostEur: Number(json.usage?.cost ?? 0) * Number(process.env.USD_EUR_RATE ?? 0.92),
+  };
+}
+
 /** Deterministic fallback — no key, no network. Marked as such in usage. */
 function localFallback(prompt, profile) {
   const firstSentence = prompt.split(/[.!?\n]/).map((s) => s.trim()).filter(Boolean)[0] ?? profile.craft;
@@ -108,12 +139,13 @@ export async function generateSite({ name, craft, prompt, palette }) {
   const provider = (process.env.LLM_PROVIDER ?? '').toLowerCase();
   const hasKey = Boolean(process.env.LLM_API_KEY);
 
-  if ((provider === 'anthropic' || provider === 'openai') && hasKey) {
-    try {
-      const { text, in: tokensIn, out: tokensOut } =
-        provider === 'anthropic'
-          ? await callAnthropic(prompt, { name, craft })
+  if (['anthropic', 'openai', 'openrouter'].includes(provider) && hasKey) {
+      const result = provider === 'anthropic'
+        ? await callAnthropic(prompt, { name, craft })
+        : provider === 'openrouter'
+          ? await callOpenRouter(prompt, { name, craft })
           : await callOpenAI(prompt, { name, craft });
+      const { text, in: tokensIn, out: tokensOut } = result;
       const parsed = JSON.parse(text);
       if (!parsed.tagline || !parsed.bio || !Array.isArray(parsed.projects)) {
         throw new Error('bad shape');
@@ -127,7 +159,9 @@ export async function generateSite({ name, craft, prompt, palette }) {
         featured: true,
         order: i + 1,
       }));
-      const costEur = estimateCost(provider, tokensIn, tokensOut);
+      const costEur = provider === 'openrouter' && result.providerCostEur > 0
+        ? result.providerCostEur
+        : estimateCost(provider, tokensIn, tokensOut);
       return {
         site: {
           tagline: String(parsed.tagline).slice(0, 200),
@@ -140,10 +174,11 @@ export async function generateSite({ name, craft, prompt, palette }) {
         projects,
         usage: { provider, tokensIn, tokensOut, costEur },
       };
-    } catch (err) {
-      console.error(`[generate] LLM failed (${err.message}), using local fallback`);
-    }
   }
+
+  // A configured LLM must never silently fall back to fake content on an API or
+  // parsing error. The caller should surface the failure and not spend a credit.
+  if (provider && hasKey) throw new Error(`Unsupported LLM provider: ${provider}`);
   const fb = localFallback(prompt, { name, craft });
   return { site: { palette, ...fb.site }, projects: fb.projects, usage: fb.usage };
 }

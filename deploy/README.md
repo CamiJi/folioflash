@@ -8,6 +8,11 @@ Target: `https://folioflash.camilleaubert.com` → `folioflash-studio:4322` (NPM
 
 ## 1. First install (from the workspace)
 
+Create `deploy/.env` on the nano (never commit it), with `LLM_PROVIDER`,
+`LLM_MODEL`, and `LLM_API_KEY`. The Studio supports OpenRouter and records
+provider-reported token/cost usage. Current personal pilot uses the configured
+OpenRouter model; use a dedicated Folioflash key for production/beta.
+
 ```bash
 cd /var/www/html/sideprojects/folioflash
 ssh -F /tmp/ssh-ff/config nano 'mkdir -p /home/ubuntu/apps/folioflash'

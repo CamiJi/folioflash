@@ -13,3 +13,4 @@ studio/data/
 *.key
 *.pem
 .env
+deploy/.env

@@ -5,3 +5,4 @@ data/
 .git/
 template-folio/node_modules/
 studio/data/
+deploy/.env

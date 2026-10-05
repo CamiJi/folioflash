@@ -6,8 +6,12 @@ node server.mjs       # → http://localhost:4322 (form + JSON API, zero deps)
 ```
 
 Env: `PORT`, `TEMPLATE_DIR` (défaut `../template-folio`), `NODE_BIN` (défaut `node`),
-`LLM_PROVIDER=anthropic|openai`, `LLM_API_KEY`, `LLM_MODEL`, `LLM_PRICE_IN/OUT` (€/1M tokens).
+`LLM_PROVIDER=anthropic|openai|openrouter`, `LLM_API_KEY`, `LLM_MODEL`, `LLM_PRICE_IN/OUT` (€/1M tokens).
 Sans clé LLM : fallback local déterministe (marqué `local-fallback`, coût 0) — le pipeline reste testable.
+Avec OpenRouter configuré, les erreurs API/JSON sont renvoyées (pas de fallback silencieux) et
+la tentative échouée rembourse le crédit. Sites/crédits sont persistés dans `data/state.json`.
+`STUDIO_USER` + `STUDIO_PASSWORD` protègent `/` et les routes `/api/*` en HTTP Basic Auth
+(la route publique `/demo/` reste ouverte). Obligatoires sur le nano avant d'activer une clé LLM.
 
 | Method | Route | Effet |
 |---|---|---|
