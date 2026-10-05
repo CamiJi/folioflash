@@ -81,7 +81,22 @@ création/renouvellement de certificats, suppression de hosts et récupération 
 - Auth temporaire Basic Auth remplacée par authentification produit avant ouverture.
 - Secrets d'API et NPM uniquement dans variables/fichiers runtime protégés, jamais Git.
 
-## 6. Ce qu'on ne fait pas au lancement
+## 6. Sélection et benchmarks des modèles
+
+- Maintenir une allowlist versionnée de modèles/providers (dont modèles gratuits
+  OpenRouter candidats), avec prix observé, contexte, limites, disponibilité et qualité.
+- Bench offline représentatif FR/EN : fidélité factuelle au profil, projets omis ou
+  inventés, traduction, direction artistique, JSON valide, retouches par prompt,
+  latence, taux d'échec et coût réel.
+- Sélectionner le modèle le moins cher **parmi ceux qui passent le seuil qualité** ;
+  conserver un fallback fiable si le gratuit est indisponible ou rate-limité.
+- Ne jamais router aveuglément vers un modèle gratuit/non évalué, ni facturer plus que
+  l'estimation annoncée. Recalculer les coûts après chaque job ; prix/limites OpenRouter
+  et disponibilités gratuites peuvent changer.
+- Ne pas utiliser les prompts/profils clients pour benchmarker ou entraîner sans accord ;
+  commencer avec un jeu de test synthétique/anonymisé.
+
+## 7. Ce qu'on ne fait pas au lancement
 
 Enregistrement/achat de domaines, délégation/transfert DNS, GitHub Pages par client,
 éditeur drag&drop, multi-templates, langues au-delà de FR/EN, analytics non essentiels.

@@ -19,7 +19,8 @@
 - [ ] Hébergement multi-sites sur le nano : routage Host, DNS du domaine client, provisionnement NPM/TLS automatisé
 - [ ] Spike sécurité/capacité NPM API, builds concurrents, stockage, sauvegardes et restauration ; fixer le plafond de pilotes
 - [ ] Stripe test : publication/hébergement + estimation IA préalable, webhooks idempotents, ledger et remboursement en cas d'échec
-- [ ] Crédits de modification au coût LLM mesuré + petite marge ; recharges Stripe groupées pour absorber les frais fixes
+- [ ] Recharge pilote Stripe de 5 € ; crédits calculés au coût IA + compute/build + petite marge, après frais Stripe
+- [ ] Bench offline de modèles OpenRouter gratuits et payants ; choisir le moins cher qui passe le seuil qualité, garder un fallback fiable
 - [ ] Bouton opérateur « Générer un message de soutien LinkedIn à Folioflash » : brouillon FR/EN, éditable et copiable, sans envoi automatique
 - [ ] 5-10 pilotes sur leurs propres domaines, test de charge et mesure des coûts réels
 

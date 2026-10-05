@@ -41,14 +41,16 @@ Mesures pilotes : une V1 de Léa a coûté environ 0,005 € en LLM et une modif
 
 ## 4. Facturation beta — coût réel, tarifs à décider
 
-Objectif : crédits IA facturés au coût réel des tokens **plus une petite marge** pour
-tester la volonté de payer. Pour l'instant, le pourcentage de marge et le prix des
-recharges restent à fixer après mesure. L'hébergement et les frais Stripe doivent être
-visibles/calculés séparément, pas cachés dans le coût LLM.
+Objectif : recharge pilote de **5 €**, puis portefeuille consommé par chaque prompt.
+Le débit d'un job correspond au coût IA réel + build/compute attribuable + petite marge.
+Le net disponible du portefeuille tient compte des frais Stripe de la recharge. Le
+pourcentage exact de marge et les unités affichées restent à décider après mesure.
 
-- Stripe : packs/recharges de crédits prépayés ; éviter une transaction par appel IA,
+- Stripe : recharge initiale de 5 € à tester ; éviter une transaction par appel IA,
   car les frais fixes peuvent largement dépasser un job de quelques millièmes d'euro.
-- IA : estimation en euros avant lancement ; journal réel de coût par appel ; échec
+- Crédit : débiter le coût total calculé par job, arrondi à l'unité affichée ; si un
+  modèle est gratuit, facturer tout de même compute/build et quote-part pertinente.
+- IA : estimation en crédits/€ avant lancement ; journal réel de coût par appel ; échec
   de génération = pas de débit client ou remboursement idempotent.
 - Domaine : aucun prélèvement Folioflash ; le créateur paie son registrar directement.
 - Les amis peuvent être pilotes gratuits, avec accord explicite pour présenter leur
@@ -58,6 +60,7 @@ Revoir les tarifs après 50 générations/modifications et test de charge/restau
 
 ## 5. À mesurer en M1
 
-Logger par job/site : tokens, modèle, coût fournisseur, frais Stripe, durée, ressources
-build, octets entrants/sortants, taille des assets après optimisation, stockage total,
-trafic, sauvegardes et coût support. Calculer le coût par site actif avant de fixer le prix.
+Logger par job/site : tokens, modèle, coût fournisseur, frais Stripe affectés aux
+recharges, durée, ressources build, octets entrants/sortants, taille des assets après
+optimisation, stockage total, trafic, sauvegardes et coût support. Calculer le coût
+par site actif avant de fixer le prix et le pourcentage de marge.

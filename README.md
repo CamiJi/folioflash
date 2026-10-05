@@ -1,6 +1,6 @@
 # Folioflash — prompt-to-portfolio in minutes
 
-> Décris ton activité, ajoute tes images si tu en as, obtiens un portfolio Astro rapide. Beta au coût réel.
+> Décris ton activité, ajoute tes images si tu en as, obtiens un portfolio Astro rapide. Crédits IA au coût mesuré + petite marge pendant la beta.
 
 **Folioflash** vise à transformer un brief en portfolio **Astro + Tailwind** statique et bilingue. Le LLM doit proposer une direction artistique si le brief n'en précise pas ; les assets devront être optimisés côté serveur au chargement.
 
@@ -32,14 +32,15 @@
 | Poste | Décision |
 |---|---|
 | Domaine | Acheté et conservé par le client auprès de son registrar ; Folioflash ne facture rien |
-| IA, publication, hébergement | Objectif : facturation Stripe au coût réel ; parcours et tarifs à implémenter après instrumentation |
+| Recharge de crédits | **5 € pilote proposé** ; chaque job débite le coût IA + build/compute + petite marge |
+| Paiement Stripe | À implémenter ; valeur des crédits à calculer après frais Stripe |
 
 Voir `docs/couts.md`. Le nano actuel n'est pas une capacité illimitée : nombre de pilotes plafonné après test de charge.
 
 ## Status / roadmap
 
 - **Prototype** : Studio, génération LLM et template visibles sur le serveur.
-- **M1** : site marketing, activation du lien magique (Resend à configurer), optimisation assets, multi-sites/domaines clients, Stripe test/live, mesure capacité.
+- **M1** : activation du lien magique (clé et expéditeur Brevo à configurer), import profil, optimisation assets, benchmark modèles, multi-sites/domaines clients, Stripe test/live.
 - **M2** : rollback, industrialisation et migration serveur si capacité atteinte ; blog SEO et LinkedIn validés par humain.
 
 See `docs/roadmap.md`.

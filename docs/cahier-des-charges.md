@@ -48,10 +48,11 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 
 ### 3.3 Modifications par prompt et crédits payants
 1. Après la V1 initiale, toute modification du portfolio passe par un prompt texte/voix ; pas d'éditeur manuel.
-2. Chaque modification consomme des crédits payants, évalués au coût réel des tokens plus une petite marge ; estimation et nombre de crédits affichés avant confirmation.
-3. Les crédits sont prépayés/rechargés par Stripe afin d'éviter une micro-transaction Stripe par chaque appel IA. Stripe/webhooks et journal des crédits doivent être idempotents.
-4. Après confirmation, le LLM propose l'aperçu de modification puis le build statique publie sur le même domaine.
-5. Historique de versions et rollback avant ouverture à grande échelle.
+2. Recharge minimale pilote proposée : **5 €** par transaction Stripe ; le montant exact de crédits disponibles tient compte des frais Stripe et du petit markup.
+3. Chaque modification débite le portefeuille selon le coût réel IA + build/compute attribuable + petite marge ; afficher l'estimation en crédits/€ avant confirmation.
+4. Les crédits sont prépayés/rechargés afin d'éviter une micro-transaction Stripe par appel IA. Stripe/webhooks et journal du portefeuille doivent être idempotents.
+5. Après confirmation, le LLM propose l'aperçu de modification puis le build statique publie sur le même domaine.
+6. Historique de versions et rollback avant ouverture à grande échelle.
 
 ## 4. Exigences fonctionnelles
 
@@ -71,6 +72,7 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 | F12 | Historique / rollback | M2 | La preview existe dans le Studio ; conserver la dernière version live si build échoue |
 | F13 | Message de lancement LinkedIn | M1 | Bouton opérateur « Générer un message de soutien à Folioflash » ; brouillon FR/EN éditable, à copier/coller manuellement |
 | F14 | Import de profil | M1 | URL LinkedIn comme référence + texte/document fourni par le membre ; extraction, brouillon à confirmer ; aucun scraping |
+| F15 | Benchmark/routage modèles | M1 | Config allowlist : choisir le modèle le moins cher satisfaisant les tests qualité/coût/latence ; modèles gratuits OpenRouter candidats, pas de sélection sur le prix seul |
 
 ## 5. Exigences non fonctionnelles
 
@@ -93,7 +95,7 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 
 ## 7. Modèle économique (résumé — chiffres en `couts.md`)
 
-Beta : V1 d'essai limitée ; crédits de modification au coût LLM réel + petite marge ; frais Stripe et hébergement à intégrer après mesure ; aucun produit de domaine.
+Beta : V1 d'essai limitée ; recharge pilote de 5 € proposée ; modifications débitées du portefeuille au coût mesuré (LLM + build/compute) + petite marge. Frais Stripe, stockage et hébergement doivent être couverts/mesurés ; aucun produit de domaine.
 
 ## 8. Critères d'acceptation M1
 
