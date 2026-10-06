@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Folioflash Studio — minimal orchestrator (M1): intake form, site records, job log. Zero deps, Node 22+.",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.19.0"
   },
   "scripts": {
     "start": "node --experimental-sqlite server.mjs",

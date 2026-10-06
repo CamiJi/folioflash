@@ -71,7 +71,7 @@ création/renouvellement de certificats, suppression de hosts et récupération 
 
 ## 5. Studio sur le serveur personnel
 
-- Node 22.12+ + SQLite (persistée) pour comptes, sites, domaines, jobs, paiements et crédits ; base et journal en WAL, fichier protégé en 0600.
+- Node 22.19+ + SQLite (persistée) pour comptes, sites, domaines, jobs, paiements et crédits ; base et journal en WAL, fichier protégé en 0600.
 - Relation 1:1 entre compte email et portfolio actif, garantie par contrainte SQL ; le solde et le droit à la première génération offerte sont rattachés au compte. Les doublons historiques pré-migration sont conservés en archives publiques non modifiables, hors du slot actif.
 - Première génération réussie offerte une fois par compte ; suppression/recréation du portfolio ne réinitialise pas ce droit. Toutes les générations/modifications suivantes exigent des crédits.
 - Worker de build isolé et borné ; stockage d'images d'abord local avec quota et backup.

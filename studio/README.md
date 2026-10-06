@@ -1,7 +1,7 @@
 # Studio — run + API contract (M1)
 
 ```bash
-nvm use 22            # Nano: Node ≥ 22.12 requis (SQLite + Astro build)
+nvm use 22            # Nano: Node ≥ 22.19 requis (SQLite + template dependencies)
 node --experimental-sqlite server.mjs  # → http://localhost:4322
 ```
 

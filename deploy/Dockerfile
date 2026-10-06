@@ -1,6 +1,6 @@
-# Studio on the nano: Node 22 runtime (builds run inside the container).
+# Studio on the nano: Node 22.19+ runtime (SQLite and current template dependencies).
 # RAM-friendly like portfolio-astro (512 MB heap cap) — one build at a time.
-FROM node:22.12-alpine
+FROM node:22.19-alpine
 WORKDIR /app
 
 COPY studio/package.json studio/package-lock.json ./studio/
