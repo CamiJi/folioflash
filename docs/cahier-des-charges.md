@@ -59,7 +59,7 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 | ID | Fonction | M1 | Notes |
 |---|---|---|---|
 | F1 | Landing FR/EN + galerie exemples | oui | Astro statique, même stack que les portfolios générés |
-| F2 | Signup + dashboard « mes sites » | oui, minimal | email+lien magique ; OAuth M2 |
+| F2 | Signup + dashboard « mes sites » | oui, minimal | email+lien magique ; **un portfolio actif par compte** (anciens sites pilotes exemptés) ; emails jetables refusés (liste de ~120k domaines, Gmail/Proton/courants acceptés) ; suppression de compte/portfolio (RGPD) |
 | F3 | Studio prompt + assets | oui | Images optimisées côté serveur au chargement : validation réelle du format, redimensionnement, WebP, suppression EXIF, quota ; originaux temporaires supprimés après conversion |
 | F4 | Générateur Astro | oui | Template unique Astro + Tailwind ; contenu structuré, style et motif métier proposés par le LLM si absents (allowlist `motif`, voir `design-system.md`) ; jamais de code arbitraire |
 | F5 | Build + publication | oui | Build Astro isolé/limité sur le serveur personnel ; site statique servi par domaine client depuis le même serveur |

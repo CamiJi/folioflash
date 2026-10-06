@@ -123,6 +123,14 @@ test('magic links create isolated accounts, one-time sessions and logout', async
   assert.equal(uninvited.status, 202);
   assert.equal(existsSync(captureFile), false, 'non-allowlisted addresses receive no email');
 
+  const disposable = await fetch(`${baseUrl}/api/auth/request`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'junk@mailinator.com' }),
+  });
+  assert.equal(disposable.status, 202);
+  assert.equal(existsSync(captureFile), false, 'throwaway addresses receive no email');
+
   const firstToken = await requestLoginLink(baseUrl, 'one@example.test', captureFile);
   const firstCookie = await confirmLink(baseUrl, firstToken);
   const studioPage = await fetch(`${baseUrl}/studio`, { headers: { cookie: firstCookie } });
@@ -163,6 +171,25 @@ test('magic links create isolated accounts, one-time sessions and logout', async
 
   const ownSites = await fetch(`${baseUrl}/api/sites`, { headers: { cookie: firstCookie } });
   assert.equal((await ownSites.json()).length, 1);
+
+  const duplicate = await fetch(`${baseUrl}/api/sites`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: firstCookie },
+    body: JSON.stringify({ name: 'Second Portfolio', craft: 'Baker', prompt: 'Bread.' }),
+  });
+  assert.equal(duplicate.status, 409);
+  assert.equal((await duplicate.json()).siteId, site.id);
+
+  const removal = await fetch(`${baseUrl}/api/sites/${site.id}`, { method: 'DELETE', headers: { cookie: firstCookie } });
+  assert.equal(removal.status, 204);
+  assert.deepEqual(await (await fetch(`${baseUrl}/api/sites`, { headers: { cookie: firstCookie } })).json(), []);
+  const recreated = await fetch(`${baseUrl}/api/sites`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: firstCookie },
+    body: JSON.stringify({ name: 'Second Portfolio', craft: 'Baker', prompt: 'Bread.' }),
+  });
+  assert.equal(recreated.status, 201);
+  assert.equal((await recreated.json()).credits, 3);
   const logout = await fetch(`${baseUrl}/api/auth/logout`, { method: 'POST', headers: { cookie: firstCookie } });
   assert.equal(logout.status, 204);
   assert.equal((await fetch(`${baseUrl}/api/sites`, { headers: { cookie: firstCookie } })).status, 401);

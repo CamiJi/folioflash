@@ -13,6 +13,7 @@
     "test": "node --test"
   },
   "dependencies": {
+    "disposable-email-domains": "^1.0.62",
     "nodemailer": "^10.0.15"
   }
 }
