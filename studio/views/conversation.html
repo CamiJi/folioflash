@@ -85,7 +85,7 @@
         <div id="brief-messages" class="messages" role="log" aria-live="polite" aria-relevant="additions text">
           <article class="message message--assistant">Salut ! Raconte-moi ce que tu fais, même en vrac. Tu peux commencer par ton nom ou ton pseudo, coller ton LinkedIn/CV ou dicter.</article>
         </div>
-        <div class="conversation-progress"><span id="turn-count">Jusqu’à 6 réponses pour préparer le brief.</span><span>Ta première génération est offerte.</span></div>
+            <div class="conversation-progress"><span id="turn-count">Jusqu’à 6 réponses pour préparer le brief.</span><span id="generation-note">Ta première génération est offerte.</span></div>
         <form id="brief-form">
           <div id="brief-composer" class="composer">
             <label class="sr-only" for="brief-input">Ton message pour Folioflash</label>
@@ -103,16 +103,19 @@
           <p class="composer-note privacy-note">Photos optimisées et analysées par l’IA ; publiées seulement avec ton accord.</p>
           <p id="brief-status" class="brief-status" role="status" aria-live="polite"></p>
         </form>
+        <button id="cancel-rebrief" class="delete-site" type="button" hidden>Garder mon site actuel</button>
         <section id="brief-ready" class="brief-summary" hidden aria-labelledby="brief-ready-title">
           <h2 id="brief-ready-title">Le brief est prêt.</h2>
           <p id="brief-summary-text"></p>
           <p id="brief-image-consent" class="composer-note" hidden>Les images listées dans le résumé apparaîtront sur ton site.</p>
+          <p id="rebrief-warning" class="composer-note" hidden>Ton site actuel reste en ligne pendant la préparation. Il sera remplacé seulement si la nouvelle version se construit correctement.</p>
           <button id="generate-site" class="create-site-button" type="button">Créer mon portfolio</button>
         </section>
       </section>
 
       <section id="site-panel" class="conversation-panel" hidden aria-label="Modifier mon portfolio">
         <div class="site-status"><strong id="site-name"></strong><span id="site-credit-count"></span><a id="site-view" href="#" target="_blank" rel="noopener">Voir mon portfolio ↗</a></div>
+        <button id="start-rebrief" class="create-site-button" type="button" hidden>Préparer une nouvelle version</button>
         <div id="edit-messages" class="messages" role="log" aria-live="polite"><article class="message message--assistant">Ton portfolio est en ligne. Dis-moi ce que tu veux changer, je m’occupe du reste.</article></div>
         <form id="edit-form" class="edit-form">
           <label class="sr-only" for="edit-input">Que veux-tu changer ?</label>

@@ -158,6 +158,7 @@ async function callOpenAI(prompt, profile, stylePreference) {
 
 async function callOpenRouter(prompt, profile, stylePreference, assets = []) {
   const model = process.env.LLM_MODEL ?? 'google/gemini-3.7-flash';
+  const baseUrl = (process.env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1').replace(/\/$/, '');
   const content = [{
     type: 'text',
     text: `${userBrief(profile, prompt, stylePreference)}\n\nApproved images (use only the exact IDs; never invent paths):\n${assets.map((asset) => `${asset.id}: ${asset.name}`).join('\n') || 'none'}`,
@@ -165,7 +166,7 @@ async function callOpenRouter(prompt, profile, stylePreference, assets = []) {
   for (const asset of assets) {
     content.push({ type: 'image_url', image_url: { url: `data:image/webp;base64,${asset.data.toString('base64')}` } });
   }
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const res = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',

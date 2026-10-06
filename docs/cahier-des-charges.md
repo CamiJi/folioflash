@@ -63,7 +63,7 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 | F1 | Landing FR/EN + galerie exemples | oui | Astro statique, même stack que les portfolios générés |
 | F2 | Signup + espace portfolio | oui, minimal | email+lien magique ; **un compte=email ↔ un portfolio actif** ; emails jetables refusés (Gmail/Proton/courants acceptés) ; suppression de portfolio (RGPD) |
 | F3 | Brief conversationnel + assets | oui | Une fenêtre unique texte/voix/coller/dépôt ; interviewer + évaluateur ; 6 messages max ; budget IA brief ≤ 0,02 € ; images optimisées en WebP, EXIF retirés, originaux jamais envoyés |
-| F4 | Générateur Astro | oui | Template unique Astro + Tailwind ; brief structuré confirmé ; choix de présentation éditoriale ou galerie depuis le contenu ; cartes non automatiques ; jamais de code arbitraire |
+| F4 | Générateur Astro + découvrabilité | oui | Template Astro/Tailwind ; brief confirmé ; éditorial par défaut, galerie seulement si justifiée ; `Person` JSON-LD, `persona.json`, canonical, robots.txt et sitemap incluant les pages et le persona |
 | F5 | Build + publication | oui | Build Astro isolé/limité sur le serveur personnel ; site statique servi par domaine client depuis le même serveur |
 | F6 | Paiement Stripe | oui | Checkout + webhooks, plans + crédits, factures Stripe |
 | F7 | Domaine client | oui | Le client garde son domaine et son registrar ; guide DNS, vérification de propriété/résolution, routage et HTTPS auto ; aucun achat ou transfert |
@@ -85,6 +85,7 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 - **Statique** : 100 % pré-rendu, pas de base par site publié ; seules les données du Studio sont dynamiques.
 - **Confidentialité** : zéro cookie/tracker sur sites générés en V1 ; analytics M2 opt-in.
 - **SEO/IA** : sitemap, robots, OG, `llms.txt` + `llms-full.txt` + `persona.json` générés à chaque build (repris d'earlyreflect).
+- **Indexation** : URL canonique par portfolio ; `robots.txt` référence le sitemap à cette même URL publique ; `persona.json` et ses pages sont dans le sitemap. La vitesse de crawl dépend de Google ; soumettre la propriété et le sitemap dans Search Console.
 - **Sécurité** : images limitées (max 8 par site, 5 Mo/fichier source, 680 px max côté long, WebP q70, EXIF retirés, originaux traités localement puis supprimés), validation signature/dimensions, SVG/archives refusés, fichiers isolés par compte ; photos publiées seulement après confirmation ; secrets Stripe uniquement côté serveur.
 - **RGPD** : export/suppression compte, mentions légales, conservation documentée des images optimisées, suppression à la demande, pas de revente de données.
 - **Brief IA** : budget et tours bornés, provider/model/tokens/coûts mesurés ; les images optimisées et le texte fourni sont transmis à OpenRouter après information explicite ; aucune récupération par scraping.

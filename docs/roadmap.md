@@ -26,6 +26,8 @@
 - [ ] Motifs visuels par métier choisis depuis les contenus, style explicite prioritaire, audit visuel par motif
 - [x] Dépôt photo dans le prompt : 8 max, 5 Mo source, canvas WebP 680 px/q70, validation magic bytes/dimensions, original jamais envoyé/conservé, consentement de publication
 - [x] Direction de mise en page confirmée : profil structuré, éditorial sans cartes par défaut ; galerie seulement si les réalisations la justifient
+- [x] Rébrief d'un portfolio live sans interruption : ancienne version conservée jusqu'au build réussi ; une allowance interne de QA, distincte du crédit gratuit client
+- [x] SEO par build : persona.json, Schema.org ProfilePage/Person JSON-LD, canonical, robots.txt et sitemap incluant le persona
 - [ ] Hébergement multi-sites sur le nano : routage Host, DNS du domaine client, provisionnement NPM/TLS automatisé
 - [ ] Spike sécurité/capacité NPM API, builds concurrents, stockage, sauvegardes et restauration ; fixer le plafond de pilotes
 - [ ] Stripe test : publication/hébergement + estimation IA préalable, webhooks idempotents, ledger et remboursement en cas d'échec
@@ -44,11 +46,12 @@
 - [ ] Multi-templates, langues supplémentaires, support DNS amélioré et partenariats
 
 ## Lancement — checklist (ordre proposé)
-1. [ ] Lien magique de bout en bout (réception + connexion confirmées ; tester déconnexion), Basic Auth retiré du nano
+1. [ ] Lien magique de bout en bout (réception + connexion confirmées ; smoke-tester déconnexion en production), Basic Auth déjà retiré
 2. [ ] Valider le coût du brief (≤ 0,02 € rapporté OpenRouter) et trois briefs réels sans faits inventés
 3. [ ] Motifs par métier implémentés et audités (au moins 3 : ex. topographic, waveform, blueprint)
 4. [ ] Vérifier visuellement au moins trois portfolios : texte seul, expérience/articles, photos de projets
-5. [ ] Portefeuille 5 € via Stripe test → live (estimation avant job, webhooks idempotents, remboursement si échec)
-6. [ ] 3 pilotes de bout en bout (connexion → brief → site → 1 modification payante) + mesure des coûts réels
-7. [ ] Bouton brouillon LinkedIn opérateur + envoi manuel au réseau
-8. [ ] Seuils nano (RAM/disque/builds) + sauvegardes/restauration testées, plafond de pilotes fixé
+5. [ ] Vérifier sitemap/canonical/JSON-LD sur un domaine client et l'enregistrer dans Search Console
+6. [ ] Portefeuille 5 € via Stripe test → live (estimation avant job, webhooks idempotents, remboursement si échec)
+7. [ ] 3 pilotes de bout en bout (connexion → brief → site → 1 modification payante) + mesure des coûts réels
+8. [ ] Bouton brouillon LinkedIn opérateur + envoi manuel au réseau
+9. [ ] Seuils nano (RAM/disque/builds) + sauvegardes/restauration testées, plafond de pilotes fixé

@@ -75,6 +75,10 @@ présente plutôt « Il me manque encore… » avec une phrase concrète.
 - Le budget du brief fait partie du coût de la première V1 offerte ; aucune
   recharge ne peut être déclenchée au milieu de la conversation. Si la limite est
   atteinte, le Studio explique ce qu'il manque sans démarrer la génération.
+- Pour le test interne actuel uniquement, `BRIEF_TEST_FREE_EMAILS` permet à un
+  email opérateur de refaire un brief une fois après sa V1 offerte. Le site déjà
+  publié reste en ligne pendant la conversation et le build ; il n'est remplacé
+  qu'après succès. « Garder mon site actuel » annule sans le toucher.
 - Historique transmis tronqué et borné ; pas de boucle autonome, d'outil externe,
   de scraping LinkedIn ni d'exécution de code.
 - Les appels de brief et la génération V1 sont deux postes mesurés séparément.
@@ -125,6 +129,21 @@ Le générateur reçoit le profil confirmé, pas les messages bruts comme unique
 brief. Le template choisit une composition adaptée au contenu : pas de cartes
 par défaut ; les images n'occupent une place que si elles montrent réellement le
 travail.
+
+## SEO et découvrabilité
+
+- Le portfolio publié expose les pages bilingues, les liens confirmés (notamment
+  LinkedIn, site personnel, articles et réalisations), `persona.json` et du
+  JSON-LD `ProfilePage` → `Person` avec le nom/pseudo, métier, bio, références,
+  expériences et œuvres confirmées.
+- Chaque page a un canonical sur son URL publique exacte. Le sitemap inclut les
+  pages et `persona.json`, sous la bonne base `/s/<slug>/` (ou le domaine client
+  quand il sera activé) ; `robots.txt` référence le sitemap.
+- `llms.txt` renvoie aussi vers le profil et le sitemap. Ne jamais inventer de
+  comptes sociaux/liens pour gonfler la découvrabilité.
+- L'opérateur soumettra le sitemap dans Google Search Console lorsque le domaine
+  client sera prêt. Sitemap/JSON-LD facilitent l'indexation mais ne garantissent
+  pas la date de crawl.
 
 ## Interface
 

@@ -152,12 +152,25 @@ async function uploadPendingImages() {
 
 function renderBriefState(state) {
   activeSite = { ...activeSite, ...state.site };
+  const isRebrief = Boolean(state.site.rebriefing);
+  byId('site-panel').hidden = true;
+  byId('brief-panel').hidden = false;
+  byId('page-title').textContent = isRebrief ? 'Préparons une nouvelle version.' : 'On commence par parler de ton travail.';
+  byId('page-description').textContent = isRebrief
+    ? 'Ton site actuel reste en ligne pendant qu’on prépare la suite.'
+    : 'Raconte-moi ce que tu fais, même en vrac. Je vais t’aider à trouver les bons éléments avant de créer ton portfolio.';
+  byId('generation-note').textContent = isRebrief
+    ? 'L’ancienne version reste en ligne jusqu’au build réussi.'
+    : 'Ta première génération est offerte.';
   renderMessages(state.messages ?? []);
   byId('turn-count').textContent = state.ready ? 'Tu peux relire le résumé avant de créer ton site.' : 'Une question à la fois. « Je ne sais pas » ou « passe » sont des réponses possibles.';
   const ready = Boolean(state.ready);
   byId('brief-ready').hidden = !ready;
   byId('brief-summary-text').textContent = state.summary || '';
   byId('brief-image-consent').hidden = !(state.site.attachments?.length);
+  byId('rebrief-warning').hidden = !isRebrief;
+  byId('cancel-rebrief').hidden = !isRebrief;
+  byId('generate-site').textContent = isRebrief ? 'Remplacer mon site par cette version' : 'Créer mon portfolio';
   briefInput.disabled = state.budgetReached || (state.turn >= state.limits.maxTurns && !ready);
   if (state.budgetReached) {
     briefStatus.textContent = 'Le budget de préparation est atteint. Le brief ne peut pas encore être généré.';
@@ -241,6 +254,7 @@ async function showActiveSite(site) {
   byId('site-name').textContent = site.name;
   byId('site-credit-count').textContent = `${site.credits ?? 0} crédits`;
   byId('site-view').href = `/s/${encodeURIComponent(site.slug)}`;
+  byId('start-rebrief').hidden = !site.canRebrief;
 }
 
 async function refresh() {
@@ -248,6 +262,11 @@ async function refresh() {
     const sites = await api('/api/sites');
     activeSite = sites[0] ?? null;
     if (!activeSite) return;
+    if (activeSite.rebriefing) {
+      const state = await api(`/api/sites/${encodeURIComponent(activeSite.id)}/brief`);
+      renderBriefState(state);
+      return;
+    }
     if (activeSite.status === 'live') {
       await showActiveSite(activeSite);
       return;
@@ -263,6 +282,33 @@ briefForm.addEventListener('submit', sendBrief);
 attachmentInput.addEventListener('change', () => addFiles(attachmentInput.files));
 byId('brief-mic').addEventListener('click', () => dictate(briefInput, briefStatus));
 byId('generate-site').addEventListener('click', createPortfolio);
+byId('start-rebrief').addEventListener('click', async () => {
+  if (!activeSite || busy) return;
+  busy = true;
+  try {
+    const state = await api(`/api/sites/${encodeURIComponent(activeSite.id)}/brief/start`, { method: 'POST' });
+    renderBriefState(state);
+    briefStatus.textContent = '';
+    briefInput.focus();
+  } catch (error) {
+    byId('edit-status').textContent = error.message;
+  } finally {
+    busy = false;
+  }
+});
+byId('cancel-rebrief').addEventListener('click', async () => {
+  if (!activeSite || busy || !window.confirm('Garder le portfolio actuellement en ligne ?')) return;
+  busy = true;
+  try {
+    const site = await api(`/api/sites/${encodeURIComponent(activeSite.id)}/brief/cancel`, { method: 'POST' });
+    activeSite = { ...activeSite, ...site, rebriefing: false };
+    await showActiveSite(activeSite);
+  } catch (error) {
+    briefStatus.textContent = error.message;
+  } finally {
+    busy = false;
+  }
+});
 composer.addEventListener('dragover', (event) => { event.preventDefault(); composer.classList.add('is-dragging'); });
 composer.addEventListener('dragleave', (event) => { if (!composer.contains(event.relatedTarget)) composer.classList.remove('is-dragging'); });
 composer.addEventListener('drop', (event) => {

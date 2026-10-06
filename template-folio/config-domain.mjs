@@ -7,4 +7,4 @@ const isStudioPreview = process.env.FOLIOFLASH_PREVIEW === 'true';
 export const SITE_URL = process.env.SITE_URL ?? (
   isStudioPreview ? 'https://folioflash.camilleaubert.com' : 'https://you.folioflash.site'
 );
-export const BASE_PATH = isStudioPreview ? '/demo/' : '/';
+export const BASE_PATH = process.env.BASE_PATH ?? (isStudioPreview ? '/demo/' : '/');

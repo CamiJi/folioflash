@@ -30,6 +30,8 @@ le fournisseur d'email n'est pas configuré, le code reste en mode Basic ; `/dem
 | POST | `/api/sites` | crée un brouillon vide pour le fil de conversation ; un portfolio actif par compte/email |
 | POST | `/api/sites/:id/assets` | WebP optimisé ≤ 700 Ko ; 8 fichiers maximum, accès privé au compte |
 | GET/POST | `/api/sites/:id/brief` | état du fil / message → interviewer + évaluateur, readiness, résumé, coût et compteur de tours |
+| POST | `/api/sites/:id/brief/start` | démarre un rebrief explicite depuis le portfolio live (uniquement si génération/crédits autorisés) |
+| POST | `/api/sites/:id/brief/cancel` | garde l'ancien portfolio live et abandonne le nouveau brief |
 | GET | `/api/sites/:id/assets/:assetId` | lit une image optimisée privée appartenant au portfolio |
 | POST | `/api/sites/:id/v1` | brief confirmé → première génération **gratuite une fois par compte** |
 | POST | `/api/sites/:id/edit` | `{ prompt }` → **1 crédit**, rebuild + redéploiement immédiat |

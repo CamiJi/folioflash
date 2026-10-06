@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import site from '../data/site.json';
 import { t, type Lang } from '../i18n/ui';
+import { buildProfilePageSchema, safeJsonLd, type PersonaSource } from '../lib/persona';
 
 interface Props {
   title: string;
@@ -34,6 +35,14 @@ const route = (path: string) => `${base}${path.replace(/^\/+/, '')}`;
 const homeHref = route(lang === 'fr' ? 'fr/' : '');
 const prefix = lang === 'fr' ? 'fr/' : '';
 const projectCount = (site as unknown as { projectCount?: number }).projectCount;
+const persona = site as unknown as PersonaSource;
+const canonicalBase = new URL(import.meta.env.BASE_URL, Astro.site ?? 'https://example.com');
+const basePath = import.meta.env.BASE_URL;
+const currentPath = Astro.url.pathname;
+const canonicalPath = currentPath.startsWith(basePath) ? currentPath.slice(basePath.length) : currentPath.replace(/^\/+/, '');
+const canonicalUrl = new URL(canonicalPath, canonicalBase).toString();
+const structuredProfile = buildProfilePageSchema(persona, canonicalUrl);
+const jsonLd = safeJsonLd(structuredProfile);
 const nav = [
   ...(projectCount === 0 ? [] : [{ label: t(lang, 'work'), href: route(`${prefix}${lang === 'fr' ? 'realisations/' : 'work/'}`) }]),
   { label: t(lang, 'about'), href: route(`${prefix}${lang === 'fr' ? 'a-propos/' : 'about/'}`) },
@@ -52,7 +61,9 @@ const nav = [
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
+    <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" type="image/svg+xml" href={route('favicon.svg')} />
+    <script type="application/ld+json" set:html={jsonLd}></script>
   </head>
   <body class="min-h-screen bg-paper font-sans text-ink antialiased">
     <a class="skip-link" href="#main">{lang === 'fr' ? 'Aller au contenu' : 'Skip to content'}</a>

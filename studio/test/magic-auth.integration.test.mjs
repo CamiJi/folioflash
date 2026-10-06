@@ -97,6 +97,7 @@ test('magic links create isolated accounts, one-time sessions and logout', async
       MAIL_FROM: 'studio@example.test',
       SESSION_SECRET: 'test-secret-at-least-thirty-two-characters-long',
       MAGIC_ALLOWED_EMAILS: 'one@example.test,two@example.test',
+      BRIEF_TEST_FREE_EMAILS: 'one@example.test',
       EMAIL_PROVIDER: 'brevo-smtp',
       SMTP_HOST: 'smtp-relay.brevo.test',
       SMTP_PORT: '587',
@@ -259,6 +260,13 @@ test('magic links create isolated accounts, one-time sessions and logout', async
   assert.equal(freeGeneration.status, 200, 'the first V1 is free');
   const afterFreeGeneration = await (await fetch(`${baseUrl}/api/sites`, { headers: { cookie: firstCookie } })).json();
   assert.equal(afterFreeGeneration[0].firstGenerationFree, false, 'the free-generation flag is account-scoped and persisted');
+  assert.equal(afterFreeGeneration[0].canRebrief, true, 'an explicitly test-allowlisted operator gets one internal rebrief allowance');
+  const rebrief = await fetch(`${baseUrl}/api/sites/${site.id}/brief/start`, { method: 'POST', headers: { cookie: firstCookie } });
+  assert.equal(rebrief.status, 200);
+  assert.equal((await rebrief.json()).site.rebriefing, true);
+  const canceledRebrief = await fetch(`${baseUrl}/api/sites/${site.id}/brief/cancel`, { method: 'POST', headers: { cookie: firstCookie } });
+  assert.equal(canceledRebrief.status, 200);
+  assert.equal((await canceledRebrief.json()).status, 'live', 'cancel keeps the existing live site untouched');
   const secondGeneration = await fetch(`${baseUrl}/api/sites/${site.id}/v1`, {
     method: 'POST',
     headers: { cookie: firstCookie },

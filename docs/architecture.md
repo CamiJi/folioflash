@@ -49,6 +49,13 @@ Studio → un fil texte/voix/coller/dépôt d'images
   → serveur statique sélectionne le site selon le Host du domaine client
 ```
 
+Chaque build pré-rend aussi `persona.json` (profil machine-readable), le JSON-LD
+Schema.org `ProfilePage`/`Person`, des canonical URL exactes et un sitemap qui
+inclut les pages publiques **et** le persona. `robots.txt` pointe vers ce sitemap.
+Au stade bêta l'origine est `/s/<slug>/` ; quand le domaine client sera activé,
+le build utilisera l'origine de ce domaine. Soumettre le sitemap dans Search
+Console améliore la découverte mais ne garantit pas un délai de crawl.
+
 - Preview temporaire dans le Studio ; pas de sous-domaine Folioflash remis au client.
 - Aucun formulaire séparé de création : l'interviewer est borné à 6 messages créateur et 0,02 € d'appels provider par compte ; tours, tokens et coût réel sont persistés dans SQLite.
 - Le brief comprend deux rôles IA séparés : interviewer (formule la prochaine question) et évaluateur (met à jour `briefProfile`, manques et readiness). Un clic explicite déclenche ensuite le job de génération gratuit.
@@ -80,6 +87,7 @@ création/renouvellement de certificats, suppression de hosts et récupération 
 - Node 22.19+ + SQLite (persistée) pour comptes, sites, domaines, jobs, paiements et crédits ; base et journal en WAL, fichier protégé en 0600.
 - Relation 1:1 entre compte email et portfolio actif, garantie par contrainte SQL ; le solde et le droit à la première génération offerte sont rattachés au compte. Les doublons historiques pré-migration sont conservés en archives publiques non modifiables, hors du slot actif.
 - Première génération réussie offerte une fois par compte ; suppression/recréation du portfolio ne réinitialise pas ce droit. Toutes les générations/modifications suivantes exigent des crédits.
+- Rebrief interne de QA : allowlist explicite d'emails (`BRIEF_TEST_FREE_EMAILS`), une fois ; le build en staging est basculé atomiquement et l'ancienne release reste publique en cas d'échec.
 - Worker de build isolé et borné ; stockage d'images d'abord local avec quota et backup.
 - Pipeline upload : contrôles MIME et signature fichier, dimensions/poids, conversion
   WebP, variantes responsive, EXIF supprimés ; les originaux ne sont pas téléversés

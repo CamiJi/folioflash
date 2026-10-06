@@ -11,8 +11,9 @@
  * NOTE: local `dist/` = the "live" target in M1. Pushing to a per-client
  * GitHub repo + Pages (docs/architecture.md Phase A) plugs in at step 5.
  */
-import { cpSync, mkdirSync, rmSync, symlinkSync, writeFileSync, existsSync } from 'node:fs';
+import { cpSync, mkdirSync, renameSync, rmSync, symlinkSync, writeFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { generateSite } from './generate.mjs';
@@ -20,6 +21,7 @@ import { generateSite } from './generate.mjs';
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url))); // studio/
 const TEMPLATE_DIR = process.env.TEMPLATE_DIR ?? path.join(ROOT, '..', 'template-folio');
 const NODE_BIN = process.env.NODE_BIN ?? 'node';
+const DEFAULT_PUBLIC_SITE_ROOT = (process.env.PUBLIC_BASE_URL ?? 'https://folioflash.camilleaubert.com').replace(/\/$/, '');
 
 const slugify = (s) =>
   s.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -54,74 +56,106 @@ export async function runJob({ slug, kind, profile, prompt, assets = [] }) {
     briefProfile: profile.briefProfile ?? null,
   });
 
-  const buildDir = path.join(ROOT, 'data', 'builds', slug);
-  rmSync(buildDir, { recursive: true, force: true });
-  mkdirSync(buildDir, { recursive: true });
-  cpSync(TEMPLATE_DIR, buildDir, {
-    recursive: true,
-    filter: (src) => !['node_modules', 'dist', '.git', '.astro'].includes(path.basename(src)),
-  });
-  const nm = path.join(buildDir, 'node_modules');
-  if (!existsSync(nm)) symlinkSync(path.join(TEMPLATE_DIR, 'node_modules'), nm, 'dir');
-
-  // site.json = profile (owner) + generated copy + theme
-  writeFileSync(
-    path.join(buildDir, 'src', 'data', 'site.json'),
-    `${JSON.stringify(
-      {
-        name: profile.name,
-        craft: profile.craft,
-        email: profile.email ?? 'hello@example.com',
-        palette: profile.palette ?? 'paper',
-        motif: generated.motif ?? profile.motif ?? 'cercles',
-        projectPresentation: generated.projectPresentation ?? 'editorial',
-        projectCount: projects.length,
-        experiences: generated.experiences ?? [],
-        articles: generated.articles ?? [],
-        theme: generated.theme ?? profile.theme,
-        socials: [
-          generated.contact?.linkedin ? { label: 'LinkedIn', url: generated.contact.linkedin } : null,
-          generated.contact?.website ? { label: 'Website', url: generated.contact.website } : null,
-        ].filter(Boolean),
-        contactCta: generated.contact?.cta ?? '',
-        tagline: generated.tagline,
-        bio: generated.bio,
-        designDirection: generated.designDirection,
-        fr: generated.fr,
-      },
-      null,
-      2,
-    )}\n`,
-  );
-
-  // Replace demo projects with generated ones
-  const projDir = path.join(buildDir, 'src', 'content', 'projects');
-  rmSync(projDir, { recursive: true, force: true });
-  mkdirSync(projDir, { recursive: true });
-  const publicImageDir = path.join(buildDir, 'public', 'images', 'portfolio');
-  mkdirSync(publicImageDir, { recursive: true });
-  const knownAssets = new Map();
-  for (const asset of assets) {
-    if (!/^[a-f0-9-]{36}$/i.test(asset.id)) continue;
-    const filename = `${asset.id}.webp`;
-    writeFileSync(path.join(publicImageDir, filename), asset.data, { mode: 0o644 });
-    knownAssets.set(asset.id, `images/portfolio/${filename}`);
-  }
-  projects.forEach((project, index) => {
-    const keyArt = knownAssets.get(project.assetId);
-    const filename = `project-${index + 1}-${slugify(project.title).slice(0, 30)}.md`;
-    writeFileSync(path.join(projDir, filename), projectMd({ ...project, kind, keyArt }));
-  });
+  const buildRoot = path.join(ROOT, 'data', 'builds');
+  const buildDir = path.join(buildRoot, slug);
+  const stagingDir = path.join(buildRoot, `.${slug}.pending-${randomUUID()}`);
+  mkdirSync(buildRoot, { recursive: true });
+  rmSync(stagingDir, { recursive: true, force: true });
 
   try {
-    execFileSync(NODE_BIN, ['node_modules/astro/bin/astro.mjs', 'build'], {
-      cwd: buildDir,
-      timeout: 120_000,
-      stdio: 'pipe',
-      env: { ...process.env, FOLIOFLASH_PREVIEW: 'true' },
+    mkdirSync(stagingDir, { recursive: true });
+    cpSync(TEMPLATE_DIR, stagingDir, {
+      recursive: true,
+      filter: (src) => !['node_modules', 'dist', '.git', '.astro'].includes(path.basename(src)),
     });
-  } catch (err) {
-    throw new Error(`astro build failed: ${String(err.stderr ?? err.message).slice(0, 500)}`);
+    const nm = path.join(stagingDir, 'node_modules');
+    if (!existsSync(nm)) symlinkSync(path.join(TEMPLATE_DIR, 'node_modules'), nm, 'dir');
+
+    writeFileSync(
+      path.join(stagingDir, 'src', 'data', 'site.json'),
+      `${JSON.stringify(
+        {
+          name: profile.name,
+          nameIsPseudonym: profile.briefProfile?.nameIsPseudonym ?? false,
+          craft: profile.craft,
+          audience: profile.briefProfile?.audience ?? '',
+          goal: profile.briefProfile?.goal ?? '',
+          email: profile.email ?? 'hello@example.com',
+          palette: profile.palette ?? 'paper',
+          motif: generated.motif ?? profile.motif ?? 'cercles',
+          projectPresentation: generated.projectPresentation ?? 'editorial',
+          projectCount: projects.length,
+          experiences: generated.experiences ?? [],
+          articles: generated.articles ?? [],
+          projects: projects.map((project) => ({
+            title: project.title,
+            summary: project.summary,
+            ...(project.assetId ? { keyArt: `images/portfolio/${project.assetId}.webp` } : {}),
+          })),
+          theme: generated.theme ?? profile.theme,
+          socials: [
+            generated.contact?.linkedin ? { label: 'LinkedIn', url: generated.contact.linkedin } : null,
+            generated.contact?.website ? { label: 'Website', url: generated.contact.website } : null,
+          ].filter(Boolean),
+          contactCta: generated.contact?.cta ?? '',
+          tagline: generated.tagline,
+          bio: generated.bio,
+          designDirection: generated.designDirection,
+          fr: generated.fr,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+
+    const projDir = path.join(stagingDir, 'src', 'content', 'projects');
+    rmSync(projDir, { recursive: true, force: true });
+    mkdirSync(projDir, { recursive: true });
+    const publicImageDir = path.join(stagingDir, 'public', 'images', 'portfolio');
+    mkdirSync(publicImageDir, { recursive: true });
+    const knownAssets = new Map();
+    for (const asset of assets) {
+      if (!/^[a-f0-9-]{36}$/i.test(asset.id)) continue;
+      const filename = `${asset.id}.webp`;
+      writeFileSync(path.join(publicImageDir, filename), asset.data, { mode: 0o644 });
+      knownAssets.set(asset.id, `images/portfolio/${filename}`);
+    }
+    projects.forEach((project, index) => {
+      const keyArt = knownAssets.get(project.assetId);
+      const filename = `project-${index + 1}-${slugify(project.title).slice(0, 30)}.md`;
+      writeFileSync(path.join(projDir, filename), projectMd({ ...project, kind, keyArt }));
+    });
+
+    try {
+      execFileSync(NODE_BIN, ['node_modules/astro/bin/astro.mjs', 'build'], {
+        cwd: stagingDir,
+        timeout: 120_000,
+        stdio: 'pipe',
+        env: {
+          ...process.env,
+          FOLIOFLASH_PREVIEW: 'true',
+          SITE_URL: profile.publicSiteRoot ?? DEFAULT_PUBLIC_SITE_ROOT,
+          BASE_PATH: `/s/${slug}/`,
+        },
+      });
+    } catch (err) {
+      throw new Error(`astro build failed: ${String(err.stderr ?? err.message).slice(0, 500)}`);
+    }
+
+    const previousDir = existsSync(buildDir) ? `${buildDir}.previous-${randomUUID()}` : null;
+    if (previousDir) renameSync(buildDir, previousDir);
+    try {
+      renameSync(stagingDir, buildDir);
+    } catch (error) {
+      if (previousDir && !existsSync(buildDir)) renameSync(previousDir, buildDir);
+      throw error;
+    }
+    if (previousDir) {
+      try { rmSync(previousDir, { recursive: true, force: true }); } catch { /* New build is live; old files can be cleaned later. */ }
+    }
+  } catch (error) {
+    rmSync(stagingDir, { recursive: true, force: true });
+    throw error;
   }
 
   return {

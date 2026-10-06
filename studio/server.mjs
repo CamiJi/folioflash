@@ -37,6 +37,8 @@ const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL ?? '').replace(/\/$/, '');
 const SESSION_SECRET = process.env.SESSION_SECRET ?? '';
 const MAGIC_ALLOWED_EMAILS = (process.env.MAGIC_ALLOWED_EMAILS ?? '')
   .split(',').map(normalizeEmail).filter(Boolean);
+const BRIEF_TEST_FREE_EMAILS = (process.env.BRIEF_TEST_FREE_EMAILS ?? '')
+  .split(',').map(normalizeEmail).filter(Boolean);
 const PUBLIC_SIGNUP_ENABLED = process.env.PUBLIC_SIGNUP_ENABLED === 'true';
 const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -104,10 +106,29 @@ function accountFor(email) {
       firstGenerationUsed: false,
       briefBudgetUsedEur: 0,
       briefTurnsUsed: 0,
+      briefTestFreeUsed: false,
     };
     users.set(email, account);
   }
   return account;
+}
+
+const BRIEF_WELCOME = 'Salut ! Raconte-moi ce que tu fais, même en vrac. Tu peux commencer par ton nom ou ton pseudo, coller ton LinkedIn/CV ou dicter.';
+
+function hasInternalFreeBrief(email, account = users.get(email)) {
+  return BRIEF_TEST_FREE_EMAILS.includes(email) && !account?.briefTestFreeUsed;
+}
+
+function canStartBrief(email, account = users.get(email)) {
+  return !account?.firstGenerationUsed
+    || hasInternalFreeBrief(email, account)
+    || (credits.get(email) ?? 0) > 0;
+}
+
+function uniquePortfolioSlug(name, siteId, excludeSiteId = '') {
+  const base = slugify(name) || `portfolio-${siteId}`;
+  if (![...sites.values()].some((site) => site.id !== excludeSiteId && site.slug === base)) return base;
+  return `${base}-${siteId.replace(/[^a-z0-9]/gi, '').slice(-8)}`;
 }
 
 const hashSession = (token) => createHmac('sha256', SESSION_SECRET).update(token).digest('hex');
@@ -428,6 +449,8 @@ function briefResponse(site) {
       name: site.name,
       slug: site.slug,
       status: site.status,
+      rebriefing: Boolean(site.rebriefing),
+      canRebrief: canStartBrief(site.ownerEmail, users.get(site.ownerEmail)),
       attachments: (site.attachments ?? []).map(({ id, name, width, height }) => ({ id, name, width, height })),
     },
     messages: site.briefMessages ?? [],
@@ -701,7 +724,7 @@ const server = createServer(async (req, res) => {
       send(res, 404, { error: 'unknown site' });
       return;
     }
-    if (site.status === 'live') {
+    if (site.status === 'live' && !site.rebriefing) {
       send(res, 409, { error: 'Les images se joignent pendant la préparation du portfolio.' });
       return;
     }
@@ -763,6 +786,8 @@ const server = createServer(async (req, res) => {
       firstGenerationFree: !users.get(site.ownerEmail)?.firstGenerationUsed,
       briefReady: Boolean(site.briefReady),
       briefTurns: site.briefTurns ?? 0,
+      rebriefing: Boolean(site.rebriefing),
+      canRebrief: canStartBrief(site.ownerEmail, users.get(site.ownerEmail)),
       attachments: (site.attachments ?? []).map(({ id, name, width, height }) => ({ id, name, width, height })),
     })));
     return;
@@ -791,9 +816,10 @@ const server = createServer(async (req, res) => {
         }
       }
       const ownerAccount = accountFor(ownerEmail);
-      if (!hasStructuredBrief && ((ownerAccount?.briefTurnsUsed ?? 0) >= getBriefTurnLimit()
+      if (!hasStructuredBrief && (!canStartBrief(ownerEmail, ownerAccount)
+        || (ownerAccount?.briefTurnsUsed ?? 0) >= getBriefTurnLimit()
         || (ownerAccount?.briefBudgetUsedEur ?? 0) >= BRIEF_AGENT_LIMITS.maxCostEur)) {
-        send(res, 429, { error: 'Le budget de préparation de ton premier portfolio est déjà utilisé.' });
+        send(res, 429, { error: 'Le droit de création ou le budget de préparation est déjà utilisé. Recharge ton compte pour continuer.' });
         return;
       }
       const id = `site_${++seq}`;
@@ -827,6 +853,67 @@ const server = createServer(async (req, res) => {
     }
     return;
   }
+  const rebriefMatch = url.pathname.match(/^\/api\/sites\/([^/]+)\/brief\/(start|cancel)$/);
+  if (rebriefMatch && req.method === 'POST') {
+    const site = sites.get(rebriefMatch[1]);
+    if (!site || (AUTH_MODE === 'magic' && (site.ownerEmail !== currentUser?.email || site.legacy === true))) {
+      send(res, 404, { error: 'unknown site' });
+      return;
+    }
+    const account = accountFor(site.ownerEmail || currentUser?.email || '');
+    if (rebriefMatch[2] === 'start') {
+      if (site.status !== 'live' || site.rebriefing || site.buildInProgress) {
+        send(res, 409, { error: 'La nouvelle préparation ne peut démarrer que depuis un portfolio en ligne.' });
+        return;
+      }
+      if (!canStartBrief(account.email, account)
+        || (account.briefTurnsUsed ?? 0) >= getBriefTurnLimit()
+        || (account.briefBudgetUsedEur ?? 0) >= BRIEF_AGENT_LIMITS.maxCostEur) {
+        send(res, 402, { error: 'Une nouvelle version nécessite des crédits. Ton portfolio actuel reste en ligne.' });
+        return;
+      }
+      const previousFields = [
+        'name', 'slug', 'craft', 'prompt', 'profileText', 'email', 'stylePreference',
+        'theme', 'motif', 'designDirection', 'projectPresentation', 'attachments',
+        'briefProfile', 'briefMessages', 'briefReady', 'briefSummary', 'briefMissing',
+        'briefCostEur', 'briefBudgetReached',
+      ];
+      site.briefPrevious = Object.fromEntries(previousFields.filter((key) => site[key] !== undefined).map((key) => [key, site[key]]));
+      site.rebriefing = true;
+      site.attachments = [];
+      site.briefProfile = null;
+      site.briefMessages = [{ role: 'assistant', content: BRIEF_WELCOME }];
+      site.briefTurns = account.briefTurnsUsed ?? 0;
+      site.briefCostEur = 0;
+      site.briefReady = false;
+      site.briefBudgetReached = false;
+      site.briefMissing = ['displayName', 'craft', 'purpose', 'projects', 'publications', 'visual'];
+      saveState();
+      send(res, 200, briefResponse(site));
+      return;
+    }
+
+    if (!site.rebriefing || !site.briefPrevious) {
+      send(res, 409, { error: 'Aucune nouvelle préparation n’est en cours.' });
+      return;
+    }
+    const previous = site.briefPrevious;
+    const previousAssetIds = new Set((previous.attachments ?? []).map((asset) => asset.id));
+    for (const asset of site.attachments ?? []) {
+      if (!previousAssetIds.has(asset.id)) rmSync(path.join(DATA_DIR, 'uploads', site.id, `${asset.id}.webp`), { force: true });
+    }
+    for (const key of ['name', 'slug', 'craft', 'prompt', 'profileText', 'email', 'stylePreference', 'theme', 'motif', 'designDirection', 'projectPresentation', 'attachments', 'briefProfile', 'briefMessages', 'briefReady', 'briefSummary', 'briefMissing', 'briefCostEur', 'briefBudgetReached']) {
+      if (Object.hasOwn(previous, key)) site[key] = previous[key];
+      else delete site[key];
+    }
+    delete site.briefPrevious;
+    delete site.rebriefing;
+    delete site.briefBusy;
+    saveState();
+    send(res, 200, { id: site.id, name: site.name, slug: site.slug, status: site.status, credits: credits.get(site.ownerEmail) ?? 0 });
+    return;
+  }
+
   if (m && m[3] === 'brief' && req.method === 'GET') {
     const site = sites.get(m[1]);
     if (!site || (AUTH_MODE === 'magic' && (site.ownerEmail !== currentUser?.email || site.legacy === true))) {
@@ -854,7 +941,7 @@ const server = createServer(async (req, res) => {
       send(res, 404, { error: 'unknown site' });
       return;
     }
-    if (site.status === 'live' || site.briefBusy) {
+    if ((site.status === 'live' && !site.rebriefing) || site.briefBusy) {
       send(res, 409, { error: 'Cette conversation est déjà en cours ou ton portfolio est en ligne.' });
       return;
     }
@@ -895,7 +982,6 @@ const server = createServer(async (req, res) => {
         content: message || 'Voici des images pour mon portfolio.',
         attachments: attachments.map(({ id, name }) => ({ id, name })),
       });
-      site.briefTurns += 1;
       saveState();
 
       const agentImages = attachments.map((asset) => ({
@@ -909,7 +995,7 @@ const server = createServer(async (req, res) => {
         turnNumber: site.briefTurns,
         spentEur: account.briefBudgetUsedEur ?? 0,
       });
-      applyBriefProfile(site, result.profile);
+      if (!site.rebriefing) applyBriefProfile(site, result.profile);
       site.briefProfile = result.profile;
       site.briefReady = result.ready;
       site.briefMissing = result.missing;
@@ -1005,20 +1091,31 @@ const server = createServer(async (req, res) => {
     }
     const accountEmail = site.ownerEmail || currentUser?.email || '';
     const account = accountFor(accountEmail);
-    if (site.status === 'building') {
+    if (site.status === 'building' || site.buildInProgress) {
       send(res, 409, { error: 'Une génération est déjà en cours pour ce portfolio.' });
       return;
     }
-    const freeFirstGeneration = kind === 'v1' && !account?.firstGenerationUsed;
+    const internalTestFreeGeneration = kind === 'v1'
+      && site.rebriefing
+      && BRIEF_TEST_FREE_EMAILS.includes(accountEmail)
+      && !account?.briefTestFreeUsed;
+    const freeFirstGeneration = kind === 'v1' && (!account?.firstGenerationUsed || internalTestFreeGeneration);
     const requiresCredit = !freeFirstGeneration;
+    let retiredBuildDir = null;
+    let retiredAssetPaths = [];
     try {
       const body = kind === 'edit' ? await readJson(req) : {};
       const editPrompt = kind === 'edit' ? String(body.prompt ?? '').trim() : '';
-      const basePrompt = site.briefProfile
-        ? `Brief conversationnel confirmé :\n${site.prompt}\n\nBiographie et expériences confirmées :\n${site.profileText}`
-        : site.profileText
-          ? `Profil fourni :\n${site.profileText}\n\nBrief :\n${site.prompt}`
-          : site.prompt;
+      const generationProfile = site.rebriefing && site.briefProfile ? { ...site } : site;
+      if (generationProfile !== site) {
+        applyBriefProfile(generationProfile, site.briefProfile);
+        generationProfile.slug = uniquePortfolioSlug(generationProfile.name, site.id, site.id);
+      }
+      const basePrompt = generationProfile.briefProfile
+        ? `Brief conversationnel confirmé :\n${generationProfile.prompt}\n\nBiographie et expériences confirmées :\n${generationProfile.profileText}`
+        : generationProfile.profileText
+          ? `Profil fourni :\n${generationProfile.profileText}\n\nBrief :\n${generationProfile.prompt}`
+          : generationProfile.prompt;
       const prompt = kind === 'edit'
         ? `${basePrompt}\n\nRequested update: ${editPrompt}`
         : basePrompt;
@@ -1037,9 +1134,11 @@ const server = createServer(async (req, res) => {
         }
         credits.set(accountEmail, balance - 1);
       }
-      site.status = 'building';
+      site.buildInProgress = true;
+      if (!(site.status === 'live' && site.rebriefing && site.distDir)) site.status = 'building';
       saveState();
-      const selectedAssetIds = new Set((site.briefProfile?.projects ?? []).flatMap((project) => project.assetIds ?? []));
+      const profileForBuild = generationProfile;
+      const selectedAssetIds = new Set((profileForBuild.briefProfile?.projects ?? []).flatMap((project) => project.assetIds ?? []));
       const assets = (site.attachments ?? [])
         .filter((asset) => selectedAssetIds.has(asset.id))
         .map((asset) => ({
@@ -1047,24 +1146,42 @@ const server = createServer(async (req, res) => {
           data: readFileSync(path.join(DATA_DIR, 'uploads', site.id, `${asset.id}.webp`)),
         }));
       const result = await runJob({
-        slug: site.slug,
+        slug: profileForBuild.slug,
         kind,
-        profile: site,
+        profile: profileForBuild,
         assets,
         prompt: kind === 'edit'
           ? `${site.prompt}\n\nRequested update: ${prompt}`
           : prompt,
       });
+      if (site.rebriefing && generationProfile !== site) {
+        const oldBuildDir = site.distDir ? path.resolve(STUDIO_DIR, site.distDir, '..') : null;
+        if (oldBuildDir && oldBuildDir !== path.resolve(STUDIO_DIR, result.distDir, '..')) retiredBuildDir = oldBuildDir;
+        for (const key of ['name', 'slug', 'craft', 'prompt', 'profileText', 'email', 'stylePreference']) {
+          site[key] = generationProfile[key];
+        }
+        retiredAssetPaths = (site.briefPrevious?.attachments ?? []).map((asset) => path.join(DATA_DIR, 'uploads', site.id, `${asset.id}.webp`));
+        delete site.briefPrevious;
+        delete site.rebriefing;
+      }
       site.status = result.status;
       site.distDir = result.distDir;
       site.theme = result.theme ?? site.theme;
       site.motif = result.motif ?? site.motif ?? 'cercles';
       site.projectPresentation = result.projectPresentation ?? site.projectPresentation ?? 'editorial';
       site.designDirection = result.designDirection;
+      site.buildInProgress = false;
       if (freeFirstGeneration && account) account.firstGenerationUsed = true;
+      if (internalTestFreeGeneration && account) account.briefTestFreeUsed = true;
       if (result.absDistDir) lastLiveDir = result.absDistDir;
       saveState();
       logJob({ kind: `${kind}-request`, siteId: m[1], slug: site.slug, ...result.usage });
+      for (const file of retiredAssetPaths) {
+        try { rmSync(file, { force: true }); } catch { /* keep the new published version available */ }
+      }
+      if (retiredBuildDir) {
+        try { rmSync(retiredBuildDir, { recursive: true, force: true }); } catch { /* keep the new published version available */ }
+      }
       send(res, 200, {
         id: site.id,
         slug: site.slug,
@@ -1074,10 +1191,13 @@ const server = createServer(async (req, res) => {
         theme: site.theme,
         designDirection: site.designDirection,
         credits: credits.get(accountEmail) ?? 0,
+        canRebrief: canStartBrief(accountEmail, account),
         usage: result.usage,
       });
     } catch (err) {
-      site.status = 'failed';
+      const keepCurrentLiveSite = site.status === 'live' && site.distDir;
+      site.buildInProgress = false;
+      if (!keepCurrentLiveSite) site.status = 'failed';
       if (requiresCredit) credits.set(accountEmail, (credits.get(accountEmail) ?? 0) + 1);
       saveState();
       logJob({ kind: `${kind}-request`, siteId: m[1], status: 'failed', error: err.message });

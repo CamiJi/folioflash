@@ -76,9 +76,11 @@ test('SQLite adds account-level brief budget columns to the pre-agent schema', (
     const user = store.loadState().users.get('old@example.test');
     assert.equal(user.briefBudgetUsedEur, 0);
     assert.equal(user.briefTurnsUsed, 0);
+    assert.equal(user.briefTestFreeUsed, false);
     const columns = store.db.prepare('PRAGMA table_info(users)').all().map((column) => column.name);
     assert.ok(columns.includes('brief_budget_used_eur'));
     assert.ok(columns.includes('brief_turns_used'));
+    assert.ok(columns.includes('brief_test_free_used'));
   } finally {
     store.db.close();
     rmSync(dataDir, { recursive: true, force: true });

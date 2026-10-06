@@ -21,6 +21,8 @@ sender identity. Configure `AUTH_MODE=magic`, `EMAIL_PROVIDER=brevo-smtp`, `SMTP
 Camille confirmed receipt and successful login on 2026-10-06; Basic Auth is already inactive
 on the nano (`GET /studio` redirects unauthenticated visitors to `/login`). Keep
 `PUBLIC_SIGNUP_ENABLED=false` until pilot onboarding is ready.
+`BRIEF_TEST_FREE_EMAILS` is an optional, internal-only allowlist for one rebrief of an
+already-live operator portfolio; do not set it to the general pilot allowlist.
 Node's built-in SQLite runtime needs Node 22.19+ and the `--experimental-sqlite` flag (already
 set by the Docker command). Existing `state.json`/`jobs.jsonl` are imported once; retain them
 until the SQLite backup/restore smoke test passes.

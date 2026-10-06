@@ -5,6 +5,9 @@ import tailwindcss from '@tailwindcss/vite';
 import sitemap from '@astrojs/sitemap';
 import { SITE_URL, BASE_PATH } from './config-domain.mjs';
 
+const publicBase = new URL(BASE_PATH, `${SITE_URL.replace(/\/$/, '')}/`);
+import { SITE_URL, BASE_PATH } from './config-domain.mjs';
+
 export default defineConfig({
   site: SITE_URL,
   base: BASE_PATH,
@@ -19,5 +22,8 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
   },
-  integrations: [sitemap()],
+  integrations: [sitemap({
+    customPages: [new URL('persona.json', publicBase).toString()],
+    filter: (page) => !page.endsWith('/robots.txt') && !page.endsWith('/llms.txt'),
+  })],
 });
