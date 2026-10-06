@@ -253,7 +253,7 @@ const send = (res, code, obj) => {
 
 const BRAND_STYLE = `<style>
 @font-face{font-family:Inter;src:url('/brand-fonts/inter.woff2') format('woff2');font-style:normal;font-weight:100 900;font-display:swap}@font-face{font-family:'Playfair Display';src:url('/brand-fonts/playfair-display.woff2') format('woff2');font-style:normal;font-weight:400 900;font-display:swap}:root{color-scheme:dark;--night:#0b0b0c;--panel:#151618;--cream:#f5f3ef;--muted:#d8d3ca;--gold:#c6a66b;--gold-deep:#9b7a3d;--line:#353433;--serif:'Playfair Display',Georgia,serif;--sans:Inter,ui-sans-serif,system-ui,sans-serif}
-*{box-sizing:border-box}body{margin:0;min-width:320px;background:radial-gradient(ellipse at 80% 0%,#25211a 0,transparent 35%),var(--night);color:var(--cream);font-family:var(--sans);line-height:1.55}a{color:var(--gold);text-underline-offset:.22em}button,input,textarea,select{font:inherit}button{cursor:pointer}.shell{width:min(100% - 40px,1040px);margin:auto}.topbar{height:76px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.brand{display:inline-flex;align-items:center;gap:12px;color:var(--cream);font-weight:600;text-decoration:none;letter-spacing:.02em}.brand-mark{width:13px;height:18px;background:var(--gold);clip-path:polygon(58% 0,100% 0,72% 42%,100% 42%,30% 100%,46% 55%,14% 55%)}.brand small{display:block;color:var(--muted);font-size:11px;font-weight:400;letter-spacing:.12em;text-transform:uppercase}.account{display:flex;align-items:center;gap:18px;color:var(--muted);font-size:13px}.logout{border:1px solid var(--line);background:transparent;color:var(--cream);padding:8px 12px}.hero{padding:64px 0 36px}.eyebrow{color:var(--gold);font-size:12px;letter-spacing:.16em;text-transform:uppercase}.hero h1,.login-card h1{font:500 clamp(38px,6vw,62px)/1.04 var(--serif);letter-spacing:-.035em;margin:12px 0}.hero p{color:var(--muted);max-width:580px}.workspace{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(260px,.85fr);gap:22px;padding-bottom:72px}.panel{background:linear-gradient(145deg,#191a1b,var(--panel));border:1px solid var(--line);padding:clamp(20px,4vw,34px)}.panel h2{font:500 25px/1.2 var(--serif);margin:0 0 8px}.hint{color:var(--muted);font-size:13px;margin:0 0 24px}.field{display:grid;gap:7px;margin:16px 0}.field label{font-size:13px;color:var(--muted)}.field input,.field textarea,.field select{width:100%;border:1px solid #45423d;background:#0f1011;color:var(--cream);padding:12px 13px;border-radius:2px}.field textarea{min-height:138px;resize:vertical}.field input:focus,.field textarea:focus,.field select:focus{outline:2px solid var(--gold);outline-offset:2px}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.primary{border:0;background:var(--gold);color:#0b0b0c;font-weight:650;padding:13px 18px;min-height:48px}.primary:hover{background:#d6b77f}.secondary{border:1px solid var(--gold-deep);background:transparent;color:var(--cream);padding:11px 14px}.mic-row{display:flex;gap:10px;align-items:center}.mic-row select{max-width:105px}.status{min-height:28px;margin-top:16px;color:var(--muted);font-size:14px}.site-list{display:grid;gap:10px;margin-top:22px}.site-item{border-top:1px solid var(--line);padding:14px 0;display:flex;justify-content:space-between;gap:12px;font-size:14px}.site-item small{display:block;color:var(--muted);margin-top:3px}.credits{color:var(--gold);white-space:nowrap}.login-wrap{min-height:100svh;display:grid;place-items:center;padding:24px}.login-card{width:min(100%,440px);border:1px solid var(--line);background:linear-gradient(145deg,#191a1b,#111213);padding:clamp(26px,6vw,46px)}.login-card h1{font-size:42px}.login-card p{color:var(--muted)}.login-card .field{margin:26px 0}.login-card button{width:100%}.footnote{color:var(--muted);font-size:12px;margin-top:20px}.skip{position:absolute;left:12px;top:-80px;background:var(--gold);color:var(--night);padding:10px;z-index:5}.skip:focus{top:12px}:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+*{box-sizing:border-box}body{margin:0;min-width:320px;background:radial-gradient(ellipse at 80% 0%,#25211a 0,transparent 35%),var(--night);color:var(--cream);font-family:var(--sans);line-height:1.55}a{color:var(--gold);text-underline-offset:.22em}button,input,textarea,select{font:inherit}button{cursor:pointer}.shell{width:min(100% - 40px,1040px);margin:auto}.topbar{height:76px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.brand{display:inline-flex;align-items:center;gap:12px;color:var(--cream);font-weight:600;text-decoration:none;letter-spacing:.02em}.brand-mark{width:13px;height:18px;background:var(--gold);clip-path:polygon(58% 0,100% 0,72% 42%,100% 42%,30% 100%,46% 55%,14% 55%)}.brand small{display:block;color:var(--muted);font-size:11px;font-weight:400;letter-spacing:.12em;text-transform:uppercase}.account{display:flex;align-items:center;gap:18px;color:var(--muted);font-size:13px}.logout{border:1px solid var(--line);border-radius:4px;background:transparent;color:var(--cream);padding:8px 12px}.hero{padding:64px 0 36px}.eyebrow{color:var(--gold);font-size:12px;letter-spacing:.16em;text-transform:uppercase}.hero h1,.login-card h1{font:500 clamp(38px,6vw,62px)/1.04 var(--serif);letter-spacing:-.035em;margin:12px 0}.hero p{color:var(--muted);max-width:580px}.workspace{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(260px,.85fr);gap:22px;padding-bottom:72px}.panel{background:linear-gradient(145deg,#191a1b,var(--panel));border:1px solid var(--line);padding:clamp(20px,4vw,34px)}.panel h2{font:500 25px/1.2 var(--serif);margin:0 0 8px}.hint{color:var(--muted);font-size:13px;margin:0 0 24px}.field{display:grid;gap:7px;margin:16px 0}.field label{font-size:13px;color:var(--muted)}.field input,.field textarea,.field select{width:100%;border:1px solid #45423d;background:#0f1011;color:var(--cream);padding:12px 13px;border-radius:2px}.field textarea{min-height:138px;resize:vertical}.field input:focus,.field textarea:focus,.field select:focus{outline:2px solid var(--gold);outline-offset:2px}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.primary{border:0;border-radius:4px;background:var(--gold);color:#0b0b0c;font-weight:650;padding:13px 18px;min-height:48px}.primary:hover{background:#d6b77f}.secondary{border:1px solid var(--gold-deep);border-radius:4px;background:transparent;color:var(--cream);padding:11px 14px}.mic-row{display:flex;gap:10px;align-items:center}.mic-row select{max-width:105px}.status{min-height:28px;margin-top:16px;color:var(--muted);font-size:14px}.site-list{display:grid;gap:10px;margin-top:22px}.site-item{border-top:1px solid var(--line);padding:14px 0;display:flex;justify-content:space-between;gap:12px;font-size:14px}.site-item small{display:block;color:var(--muted);margin-top:3px}.credits{color:var(--gold);white-space:nowrap}.login-wrap{min-height:100svh;display:grid;place-items:center;padding:24px}.login-card{width:min(100%,440px);border:1px solid var(--line);background:linear-gradient(145deg,#191a1b,#111213);padding:clamp(26px,6vw,46px)}.login-card h1{font-size:42px}.login-card p{color:var(--muted)}.login-card .field{margin:26px 0}.login-card button{width:100%}.footnote{color:var(--muted);font-size:12px;margin-top:20px}.skip{position:absolute;left:12px;top:-80px;background:var(--gold);color:var(--night);padding:10px;z-index:5}.skip:focus{top:12px}:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 @media(max-width:760px){.workspace{grid-template-columns:1fr}.hero{padding-top:42px}.shell{width:min(100% - 28px,1040px)}.topbar{height:68px}.account{gap:8px;font-size:11px}.form-row{grid-template-columns:1fr}.panel{padding:21px}}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.hidden{display:none!important}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
 </style>`;
@@ -282,12 +282,16 @@ function renderLanding(lang, isLoggedIn = false) {
   return isLoggedIn ? page.replaceAll('href="/login"', 'href="/studio"') : page;
 }
 
-const FORM = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0B0B0C"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><title>Studio — Folioflash</title>${BRAND_STYLE}</head><body><a class="skip" href="#main">Aller au contenu</a><div class="shell"><header class="topbar"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span><span>Folioflash<small>Studio portfolio</small></span></a><div class="account"><span>@@EMAIL@@</span><button id="logout" class="logout @@LOGOUT_CLASS@@" type="button">Déconnexion</button></div></header><main id="main"><section class="hero"><p class="eyebrow">Ton site, à ton image</p><h1>Un portfolio qui te ressemble.</h1><p>Décris ton univers. Si tu n’as pas d’idée de style, Folioflash en proposera une à partir de ton activité et de tes projets.</p></section><div class="workspace"><section class="panel"><h2>Créer un portfolio</h2><p class="hint">Commence par quelques informations. Tu pourras ensuite faire évoluer ton site par texte ou par la voix.</p><form id="create-form"><div class="form-row"><div class="field"><label for="name">Nom affiché</label><input id="name" name="name" autocomplete="name" required maxlength="100" placeholder="Léa Marceau"></div><div class="field"><label for="craft">Ton métier</label><input id="craft" name="craft" required maxlength="100" placeholder="Illustratrice jeunesse"></div></div><div class="field"><label for="public-email">Email de contact public <span>(facultatif)</span></label><input id="public-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="bonjour@tonsite.fr"></div><div class="field"><label for="style">Style souhaité <span>(facultatif)</span></label><input id="style" name="stylePreference" maxlength="160" placeholder="Ex. coloré et ludique, inspiré de la gouache"></div><div class="field"><label for="prompt">Parle-nous de ton activité et de tes projets</label><textarea id="prompt" name="prompt" required maxlength="5000" placeholder="Tes projets, ton expérience, les clients que tu recherches…"></textarea><div class="mic-row"><button type="button" id="mic" class="secondary">Dicter mon brief</button><label class="sr-only" for="voice-language">Langue de dictée</label><select id="voice-language" aria-label="Langue de dictée"><option value="fr-FR">Français</option><option value="en-US">English</option></select></div></div><button class="primary" id="create-submit" type="submit">Générer ma première version</button></form><p class="status" id="app-status" role="status" aria-live="polite"></p></section><aside class="panel"><p class="eyebrow">Mes portfolios</p><h2>Mes sites</h2><p class="hint">Tes projets et modifications apparaîtront ici.</p><div class="site-list" id="site-list"></div><p class="footnote">Les images seront bientôt disponibles.</p></aside></div></main></div><script>
+const FORM = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0B0B0C"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><title>Studio — Folioflash</title>${BRAND_STYLE}</head><body><a class="skip" href="#main">Aller au contenu</a><div class="shell"><header class="topbar"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span><span>Folioflash<small>Studio portfolio</small></span></a><div class="account"><span>@@EMAIL@@</span><button id="logout" class="logout @@LOGOUT_CLASS@@" type="button">Déconnexion</button></div></header><main id="main"><section class="hero"><p class="eyebrow">Ton site, à ton image</p><h1>Un portfolio qui te ressemble.</h1><p>Décris ton univers. Si tu n’as pas d’idée de style, Folioflash en proposera une à partir de ton activité et de tes projets.</p></section><div class="workspace"><section class="panel"><h2>Créer un portfolio</h2><p class="hint">3 étapes, 5 minutes. Ton site sera généré en français et en anglais, automatiquement.</p><form id="create-form"><div class="form-row"><div class="field"><label for="name">Étape 1 — Nom affiché</label><input id="name" name="name" autocomplete="name" required maxlength="100" placeholder="Léa Marceau"></div><div class="field"><label for="craft">Ton métier</label><input id="craft" name="craft" required maxlength="100" placeholder="Illustratrice jeunesse"></div></div><div class="field"><label for="public-email">Email de contact public <span>(facultatif)</span></label><input id="public-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="bonjour@tonsite.fr"></div><div class="field"><label for="style">Style souhaité <span>(facultatif)</span></label><input id="style" name="stylePreference" maxlength="160" placeholder="Ex. coloré et ludique, inspiré de la gouache"></div><div class="field"><label for="profile">Étape 2 — Colle ton LinkedIn <span>(recommandé)</span></label><textarea id="profile" name="profileText" rows="4" maxlength="8000" placeholder="Copie-colle ton résumé LinkedIn ou ton CV : postes, expériences, formations. Exemple : « 2021-2024 Designer produit chez Atelier Nord : refonte du site vitrine, +40 % de contacts… »"></textarea><p class="hint">Astuce : sur LinkedIn, Réglages → Confidentialité → « Obtenir une copie de tes données ». Tu reliras tout avant publication.</p></div><div class="field"><label for="prompt">Étape 3 — Raconte le reste avec tes mots</label><textarea id="prompt" name="prompt" required maxlength="5000" placeholder="Tes 2-3 projets dont tu es fier, ton style de travail, les clients que tu vises. Exemple : « J’ai réalisé l’identité du café Moiré et une fresque de 12 m pour une médiathèque… »"></textarea><div class="mic-row"><button type="button" id="mic" class="secondary">Dicter mon brief</button></div></div><button class="primary" id="create-submit" type="submit">Générer ma première version</button></form><p class="status" id="app-status" role="status" aria-live="polite"></p><p id="view-link" class="hidden" style="margin-top:0.5rem"><a class="primary" id="view-link-a" style="display:inline-block;text-decoration:none" href="#" target="_blank" rel="noopener">Voir mon portfolio ↗</a></p><h2 style="margin-top:2.2rem">Faire évoluer en parlant</h2><p class="hint">Choisis un portfolio, dis ce que tu veux changer. Une seule version en ligne, 1 crédit par modification.</p><form id="edit-form"><div class="field"><label for="edit-site">Mon portfolio</label><select id="edit-site" name="siteId"></select></div><div class="field"><label for="edit-prompt">Que veux-tu changer ?</label><textarea id="edit-prompt" name="prompt" rows="3" maxlength="2000" placeholder="Ex. passe en thème sombre, mets la fresque en premier…"></textarea><div class="mic-row"><button type="button" id="mic2" class="secondary">Dicter</button></div></div><button class="primary" id="edit-submit" type="submit">Modifier (1 crédit)</button></form></section><aside class="panel"><p class="eyebrow">Mes portfolios</p><h2>Mes sites</h2><p class="hint">Tes projets et modifications apparaîtront ici.</p><div class="site-list" id="site-list"></div><p class="footnote">Les images seront bientôt disponibles.</p></aside></div></main></div><script>
 const statusBox=document.getElementById('app-status');const createForm=document.getElementById('create-form');const createButton=document.getElementById('create-submit');const siteList=document.getElementById('site-list');
 async function api(url,options){const response=await fetch(url,options);const data=await response.json();if(!response.ok)throw new Error(data.error||'Une erreur est survenue.');return data;}
-async function refreshSites(){try{const list=await api('/api/sites');siteList.replaceChildren();for(const site of list){const item=document.createElement('div');item.className='site-item';const info=document.createElement('span');info.textContent=site.name;const meta=document.createElement('small');meta.textContent=site.status==='live'?'En ligne':'Brouillon';info.append(meta);const credits=document.createElement('span');credits.className='credits';credits.textContent=(site.credits??0)+' crédits test';item.append(info,credits);siteList.append(item);}}catch(error){siteList.textContent=error.message;}}
-document.getElementById('mic').addEventListener('click',()=>{const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SpeechRecognition){statusBox.textContent='La dictée n’est pas disponible dans ce navigateur. Tu peux écrire ton brief.';return;}const recognition=new SpeechRecognition();recognition.lang=document.getElementById('voice-language').value;recognition.interimResults=false;recognition.onresult=(event)=>{const promptField=document.getElementById('prompt');promptField.value+=(promptField.value?' ':'')+event.results[0][0].transcript;};recognition.onerror=()=>{statusBox.textContent='La dictée a échoué. Essaie à nouveau ou écris ton brief.';};recognition.start();statusBox.textContent='Je t’écoute…';recognition.onend=()=>{if(statusBox.textContent==='Je t’écoute…')statusBox.textContent='';};});
-createForm.addEventListener('submit',async(event)=>{event.preventDefault();createButton.disabled=true;statusBox.textContent='Création du portfolio…';try{const payload=Object.fromEntries(new FormData(createForm));const site=await api('/api/sites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});statusBox.textContent='Génération du contenu et du site…';const result=await api('/api/sites/'+encodeURIComponent(site.id)+'/v1',{method:'POST'});statusBox.textContent='Ta première version est prête. Style proposé : '+(result.designDirection||'direction visuelle adaptée à tes projets')+'.';createForm.reset();await refreshSites();}catch(error){statusBox.textContent=error.message;}finally{createButton.disabled=false;}});
+async function refreshSites(){try{const list=await api('/api/sites');const editSelect=document.getElementById('edit-site');const current=editSelect.value;editSelect.replaceChildren();siteList.replaceChildren();for(const site of list){const option=document.createElement('option');option.value=site.id;option.textContent=site.name;editSelect.append(option);const item=document.createElement('div');item.className='site-item';const info=document.createElement('span');info.textContent=site.name;const meta=document.createElement('small');meta.textContent=site.status==='live'?'En ligne':'Brouillon';info.append(meta);if(site.status==='live'&&site.slug){const view=document.createElement('div');const link=document.createElement('a');link.href='/s/'+encodeURIComponent(site.slug);link.target='_blank';link.rel='noopener';link.textContent='Voir ↗';view.append(link);info.append(view);}const credits=document.createElement('span');credits.className='credits';credits.textContent=(site.credits??0)+' crédits test';item.append(info,credits);siteList.append(item);}if(current)editSelect.value=current;}catch(error){siteList.textContent=error.message;}}
+document.getElementById('mic').addEventListener('click',()=>{const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SpeechRecognition){statusBox.textContent='La dictée n’est pas disponible dans ce navigateur. Tu peux écrire ton brief.';return;}const recognition=new SpeechRecognition();recognition.lang='fr-FR';recognition.interimResults=false;recognition.onresult=(event)=>{const promptField=document.getElementById('prompt');promptField.value+=(promptField.value?' ':'')+event.results[0][0].transcript;};recognition.onerror=()=>{statusBox.textContent='La dictée a échoué. Essaie à nouveau ou écris ton brief.';};recognition.start();statusBox.textContent='Je t’écoute…';recognition.onend=()=>{if(statusBox.textContent==='Je t’écoute…')statusBox.textContent='';};});
+createForm.addEventListener('submit',async(event)=>{event.preventDefault();createButton.disabled=true;document.getElementById('view-link').classList.add('hidden');statusBox.textContent='Création du portfolio…';try{const payload=Object.fromEntries(new FormData(createForm));const site=await api('/api/sites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});statusBox.textContent='Génération du contenu et du site…';const result=await api('/api/sites/'+encodeURIComponent(site.id)+'/v1',{method:'POST'});statusBox.textContent='Ta première version est en ligne. Style proposé : '+(result.designDirection||'direction visuelle adaptée à tes projets')+'.';const viewLink=document.getElementById('view-link-a');viewLink.href='/s/'+encodeURIComponent(result.slug||site.slug);document.getElementById('view-link').classList.remove('hidden');createForm.reset();await refreshSites();}catch(error){statusBox.textContent=error.message;}finally{createButton.disabled=false;}});
+const editForm=document.getElementById('edit-form');const editButton=document.getElementById('edit-submit');
+function dictate(targetId){const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SpeechRecognition){statusBox.textContent='La dictée n’est pas disponible dans ce navigateur. Tu peux écrire ta modification.';return;}const recognition=new SpeechRecognition();recognition.lang='fr-FR';recognition.interimResults=false;recognition.onresult=(event)=>{const field=document.getElementById(targetId);field.value+=(field.value?' ':'')+event.results[0][0].transcript;};recognition.onerror=()=>{statusBox.textContent='La dictée a échoué. Essaie à nouveau ou écris ta modification.';};recognition.start();statusBox.textContent='Je t’écoute…';recognition.onend=()=>{if(statusBox.textContent==='Je t’écoute…')statusBox.textContent='';};}
+document.getElementById('mic2').addEventListener('click',()=>dictate('edit-prompt'));
+editForm.addEventListener('submit',async(event)=>{event.preventDefault();editButton.disabled=true;document.getElementById('view-link').classList.add('hidden');statusBox.textContent='Modification en cours…';try{const siteId=document.getElementById('edit-site').value;const prompt=document.getElementById('edit-prompt').value;const result=await api('/api/sites/'+encodeURIComponent(siteId)+'/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});statusBox.textContent='C’est en ligne. ('+(result.credits??0)+' crédits restants)';const viewLink=document.getElementById('view-link-a');viewLink.href='/s/'+encodeURIComponent(result.slug);document.getElementById('view-link').classList.remove('hidden');document.getElementById('edit-prompt').value='';await refreshSites();}catch(error){statusBox.textContent=error.message;}finally{editButton.disabled=false;}});
 document.getElementById('logout').addEventListener('click',async()=>{try{await fetch('/api/auth/logout',{method:'POST'});}finally{window.location.href='/login';}});refreshSites();
 </script></body></html>`;
 
@@ -308,18 +312,18 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 
-/** Serve the most recent live site on /demo (M1 preview — Pages per-client in M1-next). */
-function serveDemo(req, res, pathname) {
-  if (!lastLiveDir) {
-    send(res, 404, { error: 'no live demo yet — generate a V1 first' });
+/** Serve a built dist/ dir. /demo serves the latest live site; /s/<slug> serves one site. */
+function serveStaticDir(rootDir, pathname, prefix, res) {
+  if (!rootDir) {
+    send(res, 404, { error: 'no live site yet — generate a V1 first' });
     return;
   }
-  let rel = pathname === '/demo' || pathname === '/demo/' ? 'index.html' : pathname.slice('/demo/'.length);
-  const file = path.normalize(path.join(lastLiveDir, rel));
-  if (!file.startsWith(lastLiveDir) || !existsSync(file) || statSync(file).isDirectory()) {
+  let rel = pathname === prefix || pathname === prefix + '/' ? 'index.html' : pathname.slice(prefix.length + 1);
+  const file = path.normalize(path.join(rootDir, rel));
+  if (!file.startsWith(rootDir) || !existsSync(file) || statSync(file).isDirectory()) {
     // Fallback to extensionless-route convention: <rel>/index.html
-    const nested = path.join(lastLiveDir, rel, 'index.html');
-    if (nested.startsWith(lastLiveDir) && existsSync(nested)) {
+    const nested = path.join(rootDir, rel, 'index.html');
+    if (nested.startsWith(rootDir) && existsSync(nested)) {
       res.setHeader('Content-Type', MIME['.html']);
       res.end(readFileSync(nested));
       return;
@@ -329,6 +333,16 @@ function serveDemo(req, res, pathname) {
   }
   res.setHeader('Content-Type', MIME[path.extname(file)] ?? 'application/octet-stream');
   res.end(readFileSync(file));
+}
+
+function serveDemo(req, res, pathname) {
+  serveStaticDir(lastLiveDir, pathname, '/demo', res);
+}
+
+function absDist(site) {
+  if (!site || site.status !== 'live' || !site.distDir) return null;
+  const candidate = path.resolve(STUDIO_DIR, site.distDir);
+  return existsSync(candidate) ? candidate : null;
 }
 
 const server = createServer(async (req, res) => {
@@ -524,6 +538,17 @@ const server = createServer(async (req, res) => {
     serveDemo(req, res, url.pathname);
     return;
   }
+  const siteMatch = url.pathname.match(/^\/s\/([^/]+)(\/.*)?$/);
+  if (req.method === 'GET' && siteMatch) {
+    const site = [...sites.values()].find((s) => s.slug === siteMatch[1]);
+    const dir = absDist(site);
+    if (!dir) {
+      send(res, 404, { error: 'site not found or not live yet' });
+      return;
+    }
+    serveStaticDir(dir, url.pathname, `/s/${siteMatch[1]}`, res);
+    return;
+  }
   if (req.method === 'GET' && url.pathname === '/api/health') {
     send(res, 200, { ok: true });
     return;
@@ -536,6 +561,7 @@ const server = createServer(async (req, res) => {
     );
     send(res, 200, ownedSites.map((site) => ({
       id: site.id,
+      slug: site.slug,
       name: site.name,
       status: site.status,
       palette: site.palette,
@@ -549,6 +575,7 @@ const server = createServer(async (req, res) => {
       const name = String(body.name ?? '').trim();
       const craft = String(body.craft ?? '').trim();
       const prompt = String(body.prompt ?? '').trim();
+      const profileText = String(body.profileText ?? '').trim().slice(0, 8000);
       const publicEmail = normalizeEmail(body.email);
       const stylePreference = String(body.stylePreference ?? '').trim().slice(0, 160);
       if (!name || !craft || !prompt) {
@@ -558,7 +585,7 @@ const server = createServer(async (req, res) => {
       const id = `site_${++seq}`;
       const slug = name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       const site = {
-        id, slug, name, craft, prompt: prompt.slice(0, 5_000),
+        id, slug, name, craft, prompt: prompt.slice(0, 5_000), profileText,
         email: publicEmail && isValidEmail(publicEmail) ? publicEmail : '',
         stylePreference,
         ownerEmail: currentUser?.email ?? '',
@@ -592,8 +619,14 @@ const server = createServer(async (req, res) => {
     const kind = m[3];
     try {
       const body = kind === 'edit' ? await readJson(req) : {};
-      const prompt = kind === 'edit' ? String(body.prompt ?? '').trim() : site.prompt;
-      if (!prompt) {
+      const editPrompt = kind === 'edit' ? String(body.prompt ?? '').trim() : '';
+      const basePrompt = site.profileText
+        ? `Profil fourni :\n${site.profileText}\n\nBrief :\n${site.prompt}`
+        : site.prompt;
+      const prompt = kind === 'edit'
+        ? `${basePrompt}\n\nRequested update: ${editPrompt}`
+        : basePrompt;
+      if (!prompt || (kind === 'edit' && !editPrompt)) {
         send(res, 400, { error: 'prompt is required' });
         return;
       }
@@ -624,6 +657,7 @@ const server = createServer(async (req, res) => {
       logJob({ kind: `${kind}-request`, siteId: m[1], slug: site.slug, ...result.usage });
       send(res, 200, {
         id: site.id,
+        slug: site.slug,
         name: site.name,
         status: site.status,
         palette: site.palette,

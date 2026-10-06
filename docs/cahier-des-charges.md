@@ -52,7 +52,7 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 3. Chaque modification débite le portefeuille selon le coût réel IA + build/compute attribuable + petite marge ; afficher l'estimation en crédits/€ avant confirmation.
 4. Les crédits sont prépayés/rechargés afin d'éviter une micro-transaction Stripe par appel IA. Stripe/webhooks et journal du portefeuille doivent être idempotents.
 5. Après confirmation, le LLM propose l'aperçu de modification puis le build statique publie sur le même domaine.
-6. Historique de versions et rollback avant ouverture à grande échelle.
+6. Une seule version en ligne par portfolio : pas d'historique ni de retour arrière côté utilisateur. Les gens parlent à leur portfolio, il évolue.
 
 ## 4. Exigences fonctionnelles
 
@@ -69,9 +69,9 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 | F9 | Assistant LinkedIn éditorial | M2 | repurposing de blog/portfolios ; brouillons relus et publiés manuellement, aucune campagne de DM automatique |
 | F10 | i18n sites générés | partiel | FR/EN comme earlyreflect (`/fr/`), autres langues M3 |
 | F11 | Multi-templates | non (M2) | 3 templates M2 |
-| F12 | Historique / rollback | M2 | La preview existe dans le Studio ; conserver la dernière version live si build échoue |
+| F12 | Version unique en ligne | oui | Pas de versions multiples ni de rollback utilisateur : chaque génération remplace la version live ; un build raté ne remplace jamais la version en ligne |
 | F13 | Message de lancement LinkedIn | M1 | Bouton opérateur « Générer un message de soutien à Folioflash » ; brouillon FR/EN éditable, à copier/coller manuellement |
-| F14 | Import de profil | M1 | URL LinkedIn comme référence + texte/document fourni par le membre ; extraction, brouillon à confirmer ; aucun scraping |
+| F14 | Import de profil | M1 | URL LinkedIn comme référence + texte/document fourni par le membre (collage ou export LinkedIn : Réglages → Confidentialité → « Obtenir une copie de tes données ») ; extraction, brouillon à confirmer ; aucun scraping |
 | F15 | Benchmark/routage modèles | M1 | Config allowlist : choisir le modèle le moins cher satisfaisant les tests qualité/coût/latence ; modèles gratuits OpenRouter candidats, pas de sélection sur le prix seul |
 
 ## 5. Exigences non fonctionnelles
@@ -81,7 +81,7 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 - **Statique** : 100 % pré-rendu, pas de base par site publié ; seules les données du Studio sont dynamiques.
 - **Confidentialité** : zéro cookie/tracker sur sites générés en V1 ; analytics M2 opt-in.
 - **SEO/IA** : sitemap, robots, OG, `llms.txt` + `llms-full.txt` + `persona.json` générés à chaque build (repris d'earlyreflect).
-- **Sécurité** : limite d'upload configurable (proposition pilote : 20 Mo/image), vérification magic bytes, refus SVG/archives au lancement, EXIF retiré, fichiers isolés par compte, stockage temporaire nettoyé, quotas, secrets Stripe uniquement côté serveur.
+- **Sécurité** : images limitées (max 8 par site, 5 Mo/fichier à l'entrée, 680 px max côté long, WebP q70, EXIF retirés, originaux supprimés après conversion), vérification magic bytes, refus SVG/archives, fichiers isolés par compte, quotas, secrets Stripe uniquement côté serveur.
 - **RGPD** : export/suppression compte, mentions légales, conservation documentée des images optimisées, suppression à la demande, pas de revente de données.
 - **Import LinkedIn** : source/provenance affichée, consentement du membre et confirmation avant génération ; aucune récupération par scraping.
 - **Partage LinkedIn** : générer un texte seulement ; pas d'accès aux contacts, de DM groupés ni de publication automatique.

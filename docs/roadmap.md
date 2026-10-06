@@ -17,6 +17,7 @@
 - [ ] Confirmer la réception du lien magique et la connexion complète, puis retirer le Basic Auth provisoire
 - [ ] Remplacer state JSON pilote par SQLite pour comptes/sites/jobs/paiements/crédits
 - [ ] Import de profil V1 par texte/document fourni par l'utilisateur ; URL LinkedIn conservée comme lien, sans scraping ; revue/confirmation avant génération
+- [x] Lien « Voir mon portfolio ↗ » (nouvel onglet) après chaque génération + route publique `/s/<slug>` ; version live unique, pas d'historique utilisateur
 - [ ] Motifs visuels par métier (allowlist `motif` : topographic, waveform, blueprint, botanical, grid, halftone…) choisis par le LLM depuis l'activité, style explicite prioritaire, audit visuel par motif
 - [ ] Upload d'images : contrôles, optimisation WebP/variantes, retrait EXIF, quotas ; ne pas conserver les originaux
 - [ ] Design inference structuré (palette/layout/typo), modifiable via prompt, sans code arbitraire
@@ -29,7 +30,7 @@
 - [ ] 5-10 pilotes sur leurs propres domaines, test de charge et mesure des coûts réels
 
 ## M2 — Industrialisation
-- [ ] Historique et rollback, quotas et isolation renforcés, migrations/backup automatisés
+- [ ] Quotas et isolation renforcés, migrations/backup automatisés
 - [ ] Migration vers hébergeur dédié si RAM, CPU, stockage ou trafic du serveur personnel approchent les seuils
 - [ ] Blog SEO FR/EN et robot LinkedIn avec validation humaine
 - [ ] Autres langues après validation de la demande

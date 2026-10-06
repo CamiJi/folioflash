@@ -148,6 +148,12 @@ test('magic links create isolated accounts, one-time sessions and logout', async
   assert.equal(created.status, 201);
   const site = await created.json();
 
+  const listed = await (await fetch(`${baseUrl}/api/sites`, { headers: { cookie: firstCookie } })).json();
+  assert.equal(listed[0].slug, 'first-portfolio');
+  assert.equal((await fetch(`${baseUrl}/s/first-portfolio`)).status, 404, 'draft sites have no public page');
+  assert.equal((await fetch(`${baseUrl}/s/no-such-site`)).status, 404);
+  assert.equal((await fetch(`${baseUrl}/s/../server.mjs`)).status, 404, 'no path traversal');
+
   const secondToken = await requestLoginLink(baseUrl, 'two@example.test', captureFile);
   const secondCookie = await confirmLink(baseUrl, secondToken);
   const isolatedSites = await fetch(`${baseUrl}/api/sites`, { headers: { cookie: secondCookie } });
