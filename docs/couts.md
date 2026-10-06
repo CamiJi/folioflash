@@ -43,6 +43,8 @@ Mesures pilotes : une V1 de Léa a coûté environ 0,005 € en LLM et une modif
 
 Décision beta : chaque recharge de crédits est de **5 €** ; le portefeuille est consommé
 par prompt.
+La première génération V1 réussie est offerte une seule fois par compte ; les générations
+et modifications suivantes utilisent des crédits. Aucun crédit de test n'est accordé par défaut.
 Le débit d'un job correspond au coût IA réel + build/compute attribuable + petite marge.
 Le net disponible du portefeuille tient compte des frais Stripe de la recharge. Le
 pourcentage exact de marge et les unités affichées restent à décider après mesure.

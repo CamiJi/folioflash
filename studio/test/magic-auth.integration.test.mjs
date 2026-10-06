@@ -74,7 +74,7 @@ test('magic links create isolated accounts, one-time sessions and logout', async
   const captureFile = path.join(testDir, 'email.json');
   const port = await freePort();
   const baseUrl = `http://127.0.0.1:${port}`;
-  const child = spawn(process.execPath, ['--import', './test-support/mock-nodemailer.mjs', 'server.mjs'], {
+  const child = spawn(process.execPath, ['--experimental-sqlite', '--import', './test-support/mock-nodemailer.mjs', 'server.mjs'], {
     cwd: STUDIO_DIR,
     env: {
       ...process.env,
@@ -108,7 +108,10 @@ test('magic links create isolated accounts, one-time sessions and logout', async
 
   const loginPage = await fetch(`${baseUrl}/login`);
   assert.equal(loginPage.status, 200);
-  assert.match(await loginPage.text(), /Ton espace créatif/);
+  const loginHtml = await loginPage.text();
+  assert.match(loginHtml, /Ton espace créatif/);
+  assert.match(loginHtml, /class="brand" href="\/"/);
+  assert.match(loginHtml, /Retour à Folioflash/);
   const interFont = await fetch(`${baseUrl}/brand-fonts/inter.woff2`);
   assert.equal(interFont.status, 200);
   assert.match(interFont.headers.get('content-type'), /font\/woff2/);
@@ -135,7 +138,9 @@ test('magic links create isolated accounts, one-time sessions and logout', async
   const firstCookie = await confirmLink(baseUrl, firstToken);
   const studioPage = await fetch(`${baseUrl}/studio`, { headers: { cookie: firstCookie } });
   assert.equal(studioPage.status, 200);
-  assert.match(await studioPage.text(), /one@example.test/);
+  const studioHtml = await studioPage.text();
+  assert.match(studioHtml, /one@example.test/);
+  assert.doesNotMatch(studioHtml, /Mes sites/);
   assert.equal((await fetch(`${baseUrl}/api/auth/verify`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -155,6 +160,8 @@ test('magic links create isolated accounts, one-time sessions and logout', async
   });
   assert.equal(created.status, 201);
   const site = await created.json();
+  assert.equal(site.credits, 0);
+  assert.equal(site.firstGenerationFree, true);
 
   const listed = await (await fetch(`${baseUrl}/api/sites`, { headers: { cookie: firstCookie } })).json();
   assert.equal(listed[0].slug, 'first-portfolio');
@@ -180,6 +187,25 @@ test('magic links create isolated accounts, one-time sessions and logout', async
   assert.equal(duplicate.status, 409);
   assert.equal((await duplicate.json()).siteId, site.id);
 
+  const freeGeneration = await fetch(`${baseUrl}/api/sites/${site.id}/v1`, {
+    method: 'POST',
+    headers: { cookie: firstCookie },
+  });
+  assert.equal(freeGeneration.status, 200, 'the first V1 is free');
+  const afterFreeGeneration = await (await fetch(`${baseUrl}/api/sites`, { headers: { cookie: firstCookie } })).json();
+  assert.equal(afterFreeGeneration[0].firstGenerationFree, false, 'the free-generation flag is account-scoped and persisted');
+  const secondGeneration = await fetch(`${baseUrl}/api/sites/${site.id}/v1`, {
+    method: 'POST',
+    headers: { cookie: firstCookie },
+  });
+  assert.equal(secondGeneration.status, 402, 'later generations require credits');
+  const editWithoutCredits = await fetch(`${baseUrl}/api/sites/${site.id}/edit`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: firstCookie },
+    body: JSON.stringify({ prompt: 'Change the colors.' }),
+  });
+  assert.equal(editWithoutCredits.status, 402);
+
   const removal = await fetch(`${baseUrl}/api/sites/${site.id}`, { method: 'DELETE', headers: { cookie: firstCookie } });
   assert.equal(removal.status, 204);
   assert.deepEqual(await (await fetch(`${baseUrl}/api/sites`, { headers: { cookie: firstCookie } })).json(), []);
@@ -189,20 +215,27 @@ test('magic links create isolated accounts, one-time sessions and logout', async
     body: JSON.stringify({ name: 'Second Portfolio', craft: 'Baker', prompt: 'Bread.' }),
   });
   assert.equal(recreated.status, 201);
-  assert.equal((await recreated.json()).credits, 3);
+  const recreatedSite = await recreated.json();
+  assert.equal(recreatedSite.credits, 0);
+  assert.equal(recreatedSite.firstGenerationFree, false, 'deleting a site does not reset the account free-generation entitlement');
+  const repeatedFreeGeneration = await fetch(`${baseUrl}/api/sites/${recreatedSite.id}/v1`, {
+    method: 'POST',
+    headers: { cookie: firstCookie },
+  });
+  assert.equal(repeatedFreeGeneration.status, 402);
   const logout = await fetch(`${baseUrl}/api/auth/logout`, { method: 'POST', headers: { cookie: firstCookie } });
   assert.equal(logout.status, 204);
   assert.equal((await fetch(`${baseUrl}/api/sites`, { headers: { cookie: firstCookie } })).status, 401);
 
-  const state = readFileSync(path.join(testDir, 'state.json'), 'utf8');
-  assert.equal(state.includes(firstCookie.split('=')[1]), false, 'session secrets are not persisted in raw form');
+  const state = readFileSync(path.join(testDir, 'folioflash.sqlite'));
+  assert.equal(state.includes(Buffer.from(firstCookie.split('=')[1])), false, 'session secrets are not persisted in raw form');
 });
 
 test('public landing is bilingual while the operator Studio keeps its temporary Basic gate', async (t) => {
   const testDir = mkdtempSync(path.join(TMP_ROOT, 'folioflash-basic-'));
   const port = await freePort();
   const baseUrl = `http://127.0.0.1:${port}`;
-  const child = spawn(process.execPath, ['server.mjs'], {
+  const child = spawn(process.execPath, ['--experimental-sqlite', 'server.mjs'], {
     cwd: STUDIO_DIR,
     env: {
       ...process.env,

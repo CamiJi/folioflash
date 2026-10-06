@@ -8,16 +8,17 @@
 ## M1 — Produit beta auto-hébergé (en cours)
 - [x] Template portfolio Astro + Tailwind, responsive FR/EN, preview `/demo/` ; identité client proposée par LLM si style absent
 - [x] Génération OpenRouter et régénération texte/voix ; coût LLM observé ≈0,005 € par job test
-- [x] Studio sur serveur personnel ; Basic Auth provisoire, démo accessible
+- [x] Studio sur serveur personnel ; lien magique actif en production, inscription publique fermée, démo accessible
 - [x] Vitrine et Studio rebrandés aux couleurs Nestor (noir/crème/or, Inter/Playfair Display)
 - [x] Code magic link (15 min, usage unique, confirmation anti-scanner, sessions HttpOnly/Secure/SameSite, isolation par email) + tests intégration
-- [x] SMTP Brevo copié sur le nano et authentification vérifiée (aucun email envoyé) ; Basic Auth maintenu en attendant le test de livraison
+- [x] SMTP Brevo copié sur le nano et authentification vérifiée ; réception du Magic Link puis ouverture de session confirmées 2026-10-06
 - [x] Domaine retiré de la vitrine publique (FR/EN) : connexion → infos/LinkedIn → récit → site ; le DNS reste un sujet interne/opérateur
-- [x] `AUTH_MODE=magic` activé avec allowlist `aubertcam@gmail.com`, lien magique demandé (202) — réception email confirmée 2026-10-06
-- [ ] Tester la déconnexion, puis retirer le Basic Auth provisoire (réception + session confirmées 2026-10-06)
-- [ ] Remplacer state JSON pilote par SQLite pour comptes/sites/jobs/paiements/crédits
+- [x] `AUTH_MODE=magic` activé avec allowlist `aubertcam@gmail.com`, lien magique demandé (202) — réception + ouverture de session confirmées 2026-10-06
+- [ ] Smoke-tester la déconnexion en production (réception + session confirmées ; Basic Auth déjà retiré, `/studio` redirige vers `/login` le 2026-10-06)
+- [x] SQLite pour comptes/sites/jobs/paiements/ledger/crédits ; import JSON à la première ouverture, copie conservée
 - [ ] Import de profil V1 par texte/document fourni par l'utilisateur ; URL LinkedIn conservée comme lien, sans scraping ; revue/confirmation avant génération
-- [x] Un portfolio actif par compte (409 + écran « Modifier mon portfolio », suppression RGPD) ; filtre anti-emails jetables sur le lien magique
+- [x] Un portfolio actif par compte/email (409 + espace centré sur un seul site, suppression RGPD) ; filtre anti-emails jetables
+- [x] Première génération gratuite une seule fois par compte ; générations/modifications suivantes à crédits (aucun crédit de test automatique)
 - [x] Lien « Voir mon portfolio ↗ » (nouvel onglet) après chaque génération + route publique `/s/<slug>` ; version live unique, pas d'historique utilisateur
 - [x] Styles par métier v1 : 6 palettes (`boucher` blanc/persil, `studio` noir/ambre, `atelier` terracotta…), 6 motifs CSS (`grille`, `onde`, `topo`…), V1 prend le style du LLM, repli déterministe par métier (vérifié : boucher ≠ illustratrice)
 - [ ] Motifs visuels par métier (allowlist `motif` : topographic, waveform, blueprint, botanical, grid, halftone…) choisis par le LLM depuis l'activité, style explicite prioritaire, audit visuel par motif
@@ -41,7 +42,7 @@
 - [ ] Multi-templates, langues supplémentaires, support DNS amélioré et partenariats
 
 ## Lancement — checklist (ordre proposé)
-1. [ ] Lien magique confirmé de bout en bout (réception email + connexion + déconnexion), Basic Auth retiré
+1. [ ] Lien magique de bout en bout (réception + connexion confirmées ; tester déconnexion), Basic Auth retiré du nano
 2. [ ] Motifs par métier implémentés et audités (au moins 3 : ex. topographic, waveform, blueprint)
 3. [ ] Upload + optimisation d'images en ligne (quotas, WebP, EXIF retirés, originaux supprimés)
 4. [ ] Import de profil LinkedIn (collage/document + confirmation) branché sur la génération

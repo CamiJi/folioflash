@@ -47,7 +47,7 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 4. Folioflash ne propose pas l'achat, le renouvellement ni le transfert du domaine. Aucun frais de domaine n'est facturé par Folioflash.
 
 ### 3.3 Modifications par prompt et crédits payants
-1. Après la V1 initiale, toute modification du portfolio passe par un prompt texte/voix ; pas d'éditeur manuel.
+1. La première génération V1 est offerte une seule fois par adresse de compte ; supprimer puis recréer un site ne réinitialise pas l'offre. Toute génération ou modification ultérieure passe par des crédits et un prompt texte/voix ; pas d'éditeur manuel.
 2. Recharge de crédits beta : **5 €** par transaction Stripe ; le montant de crédits disponibles tient compte des frais Stripe et de la petite marge.
 3. Chaque modification débite le portefeuille selon le coût réel IA + build/compute attribuable + petite marge ; afficher l'estimation en crédits/€ avant confirmation.
 4. Les crédits sont prépayés/rechargés afin d'éviter une micro-transaction Stripe par appel IA. Stripe/webhooks et journal du portefeuille doivent être idempotents.
@@ -59,7 +59,7 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 | ID | Fonction | M1 | Notes |
 |---|---|---|---|
 | F1 | Landing FR/EN + galerie exemples | oui | Astro statique, même stack que les portfolios générés |
-| F2 | Signup + dashboard « mes sites » | oui, minimal | email+lien magique ; **un portfolio actif par compte** (anciens sites pilotes exemptés) ; emails jetables refusés (liste de ~120k domaines, Gmail/Proton/courants acceptés) ; suppression de compte/portfolio (RGPD) |
+| F2 | Signup + espace portfolio | oui, minimal | email+lien magique ; **un compte=email ↔ un portfolio actif** ; emails jetables refusés (Gmail/Proton/courants acceptés) ; suppression de portfolio (RGPD) |
 | F3 | Studio prompt + assets | oui | Images optimisées côté serveur au chargement : validation réelle du format, redimensionnement, WebP, suppression EXIF, quota ; originaux temporaires supprimés après conversion |
 | F4 | Générateur Astro | oui | Template unique Astro + Tailwind ; contenu structuré, style et motif métier proposés par le LLM si absents (allowlist `motif`, voir `design-system.md`) ; jamais de code arbitraire |
 | F5 | Build + publication | oui | Build Astro isolé/limité sur le serveur personnel ; site statique servi par domaine client depuis le même serveur |

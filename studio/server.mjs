@@ -1,5 +1,5 @@
 /**
- * Folioflash Studio — M1 (zero dependencies, Node 22+).
+ * Folioflash Studio — M1 (Node 22+ with built-in SQLite).
  *
  * Pipeline: POST /api/sites → POST /api/sites/:id/v1 (build, free) →
  * POST /api/sites/:id/edit {prompt} (rebuild, 1 credit).
@@ -10,13 +10,14 @@
  */
 import { createServer } from 'node:http';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { mkdirSync, appendFileSync, readFileSync, writeFileSync, renameSync, rmSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, rmSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import nodemailer from 'nodemailer';
 import { runJob } from './lib/pipeline.mjs';
 import { createOpaqueToken, digestToken, isValidEmail, normalizeEmail, parseCookies } from './lib/auth.mjs';
 import { isDisposableEmail } from './lib/email-policy.mjs';
+import { openStore } from './lib/database.mjs';
 
 const PORT = Number(process.env.PORT ?? 4322);
 const AUTH_MODE = (process.env.AUTH_MODE ?? 'basic').toLowerCase();
@@ -64,19 +65,8 @@ if (AUTH_MODE === 'magic' && !PUBLIC_SIGNUP_ENABLED && MAGIC_ALLOWED_EMAILS.leng
 const STUDIO_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_DIR = process.env.TEMPLATE_DIR ?? path.resolve(STUDIO_DIR, '../template-folio');
 const DATA_DIR = process.env.STUDIO_DATA_DIR ?? path.join(STUDIO_DIR, 'data');
-const stateFile = path.join(DATA_DIR, 'state.json');
-mkdirSync(DATA_DIR, { recursive: true });
-let savedState = { sites: [], credits: [], users: [], magicLinks: [], sessions: [] };
-try {
-  if (existsSync(stateFile)) savedState = JSON.parse(readFileSync(stateFile, 'utf8'));
-} catch {
-  console.error('[state] unable to parse state.json; starting with empty state');
-}
-const sites = new Map(savedState.sites ?? []);
-const credits = new Map(savedState.credits ?? []); // test: 3 free edits per site owner
-const users = new Map(savedState.users ?? []);
-const magicLinks = new Map(savedState.magicLinks ?? []);
-const sessions = new Map(savedState.sessions ?? []);
+const store = openStore(DATA_DIR);
+const { sites, credits, users, magicLinks, sessions } = store.loadState();
 const authLimits = new Map();
 let lastLiveDir = null; // abs path of the most recent live dist/ — served on /demo
 let seq = Math.max(0, ...[...sites.keys()].map((id) => Number(id.replace('site_', '')) || 0));
@@ -91,12 +81,17 @@ for (const site of [...sites.values()].reverse()) {
 }
 
 function saveState() {
-  const temporaryStateFile = path.join(DATA_DIR, 'state.json.tmp');
-  writeFileSync(temporaryStateFile, `${JSON.stringify({
-    sites: [...sites], credits: [...credits], users: [...users],
-    magicLinks: [...magicLinks], sessions: [...sessions],
-  }, null, 2)}\n`, { mode: 0o600 });
-  renameSync(temporaryStateFile, stateFile);
+  store.saveState({ sites, credits, users, magicLinks, sessions });
+}
+
+function accountFor(email) {
+  if (!email) return null;
+  let account = users.get(email);
+  if (!account) {
+    account = { email, createdAt: new Date().toISOString(), firstGenerationUsed: false };
+    users.set(email, account);
+  }
+  return account;
 }
 
 const hashSession = (token) => createHmac('sha256', SESSION_SECRET).update(token).digest('hex');
@@ -222,11 +217,7 @@ function addSecurityHeaders(res) {
 }
 
 function logJob(entry) {
-  mkdirSync(DATA_DIR, { recursive: true });
-  appendFileSync(
-    path.join(DATA_DIR, 'jobs.jsonl'),
-    `${JSON.stringify({ at: new Date().toISOString(), ...entry })}\n`,
-  );
+  store.insertJob({ at: new Date().toISOString(), ...entry });
 }
 
 function readJson(req) {
@@ -286,13 +277,14 @@ function renderLanding(lang, isLoggedIn = false) {
 const FORM = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0B0B0C"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><title>Studio — Folioflash</title>${BRAND_STYLE}</head><body><a class="skip" href="#main">Aller au contenu</a><div class="shell"><header class="topbar"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span><span>Folioflash<small>Studio portfolio</small></span></a><div class="account"><span>@@EMAIL@@</span><button id="logout" class="logout @@LOGOUT_CLASS@@" type="button">Déconnexion</button></div></header><main id="main"><section class="hero"><p class="eyebrow">Ton site, à ton image</p><h1>Un portfolio qui te ressemble.</h1><p>Décris ton univers. Si tu n’as pas d’idée de style, Folioflash en proposera une à partir de ton activité et de tes projets.</p></section><div class="workspace"><section class="panel" id="create-panel"><h2>Créer un portfolio</h2><p class="hint">3 étapes, 5 minutes. Ton site sera généré en français et en anglais, automatiquement.</p><form id="create-form"><div class="form-row"><div class="field"><label for="name">Étape 1 — Nom affiché</label><input id="name" name="name" autocomplete="name" required maxlength="100" placeholder="Léa Marceau"></div><div class="field"><label for="craft">Ton métier</label><input id="craft" name="craft" required maxlength="100" placeholder="Illustratrice jeunesse"></div></div><div class="field"><label for="public-email">Email de contact public <span>(facultatif)</span></label><input id="public-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="bonjour@tonsite.fr"></div><div class="field"><label for="style">Style souhaité <span>(facultatif)</span></label><input id="style" name="stylePreference" maxlength="160" placeholder="Ex. coloré et ludique, inspiré de la gouache"></div><div class="field"><label for="profile">Étape 2 — Colle ton LinkedIn <span>(recommandé)</span></label><textarea id="profile" name="profileText" rows="4" maxlength="8000" placeholder="Copie-colle ton résumé LinkedIn ou ton CV : postes, expériences, formations. Exemple : « 2021-2024 Designer produit chez Atelier Nord : refonte du site vitrine, +40 % de contacts… »"></textarea><p class="hint">Astuce : sur LinkedIn, Réglages → Confidentialité → « Obtenir une copie de tes données ». Tu reliras tout avant publication.</p></div><div class="field"><label for="prompt">Étape 3 — Raconte le reste avec tes mots</label><textarea id="prompt" name="prompt" required maxlength="5000" placeholder="Tes 2-3 projets dont tu es fier, ton style de travail, les clients que tu vises. Exemple : « J’ai réalisé l’identité du café Moiré et une fresque de 12 m pour une médiathèque… »"></textarea><div class="mic-row"><button type="button" id="mic" class="secondary">Dicter mon brief</button></div></div><button class="primary" id="create-submit" type="submit">Générer ma première version</button></form><p class="status" id="app-status" role="status" aria-live="polite"></p><p id="view-link" class="hidden" style="margin-top:0.5rem"><a class="primary" id="view-link-a" style="display:inline-block;text-decoration:none" href="#" target="_blank" rel="noopener">Voir mon portfolio ↗</a></p></section><section class="panel hidden" id="modify-panel"><h2>Modifier mon portfolio</h2><p class="hint">Une seule version en ligne : chaque modification remplace la précédente.</p><p><strong id="modify-name"></strong> · <span id="modify-credits" class="credits"></span> · <a id="modify-view" href="#" target="_blank" rel="noopener">Voir mon portfolio ↗</a></p><p><button id="modify-recharge" class="primary" type="button">Recharger 5 €</button></p><p class="status" id="modify-status" role="status" aria-live="polite"></p><form id="edit-form"><input type="hidden" id="edit-site" name="siteId"><div class="field"><label for="edit-prompt">Que veux-tu changer ?</label><textarea id="edit-prompt" name="prompt" rows="3" maxlength="2000" placeholder="Dis-le avec tes mots, ou dicte-le. Ex. passe en thème sombre, mets la fresque en premier…"></textarea><div class="mic-row"><button type="button" id="mic2" class="secondary">Dicter</button></div></div><button class="primary" id="edit-submit" type="submit">Modifier (1 crédit)</button></form><p style="margin-top:1.2rem"><button id="modify-delete" class="secondary" type="button">Supprimer mon portfolio</button></p></section><aside class="panel"><p class="eyebrow">Mes portfolios</p><h2>Mes sites</h2><p class="hint">Tes projets et modifications apparaîtront ici.</p><div class="site-list" id="site-list"></div><p class="footnote">Les images seront bientôt disponibles.</p></aside></div></main></div><script>
 const statusBox=document.getElementById('app-status');const createForm=document.getElementById('create-form');const createButton=document.getElementById('create-submit');const siteList=document.getElementById('site-list');
 async function api(url,options){const response=await fetch(url,options);const data=await response.json();if(!response.ok)throw new Error(data.error||'Une erreur est survenue.');return data;}
-async function refreshSites(){try{const list=await api('/api/sites');const active=list.find((site)=>site.legacy===false);const createPanel=document.getElementById('create-panel');const modifyPanel=document.getElementById('modify-panel');if(active){createPanel.classList.add('hidden');modifyPanel.classList.remove('hidden');document.getElementById('edit-site').value=active.id;document.getElementById('modify-name').textContent=active.name;document.getElementById('modify-credits').textContent=(active.credits??0)+' crédits';document.getElementById('modify-view').href='/s/'+encodeURIComponent(active.slug);}else{createPanel.classList.remove('hidden');modifyPanel.classList.add('hidden');}siteList.replaceChildren();for(const site of list){const item=document.createElement('div');item.className='site-item';const info=document.createElement('span');info.textContent=site.name;const meta=document.createElement('small');meta.textContent=(site.status==='live'?'En ligne':'Brouillon')+(site.legacy===false?'':' · Ancien');info.append(meta);if(site.status==='live'&&site.slug){const view=document.createElement('div');const link=document.createElement('a');link.href='/s/'+encodeURIComponent(site.slug);link.target='_blank';link.rel='noopener';link.textContent='Voir ↗';view.append(link);info.append(view);}const right=document.createElement('span');const credits=document.createElement('span');credits.className='credits';credits.textContent=(site.credits??0)+' crédits';right.append(credits);const del=document.createElement('button');del.className='secondary';del.style.marginLeft='0.6rem';del.textContent='Supprimer';del.onclick=async()=>{if(!confirm('Supprimer définitivement ce portfolio ?'))return;try{await api('/api/sites/'+encodeURIComponent(site.id),{method:'DELETE'});await refreshSites();statusBox.textContent='Portfolio supprimé.';}catch(error){statusBox.textContent=error.message;}};right.append(del);item.append(info,right);siteList.append(item);}}catch(error){siteList.textContent=error.message;}}
+async function refreshSites(){try{const list=await api('/api/sites');const active=list[0];const createPanel=document.getElementById('create-panel');const modifyPanel=document.getElementById('modify-panel');if(active){createPanel.classList.add('hidden');modifyPanel.classList.remove('hidden');document.getElementById('edit-site').value=active.id;document.getElementById('modify-name').textContent=active.name;document.getElementById('modify-credits').textContent=(active.credits??0)+' crédits';document.getElementById('modify-view').href='/s/'+encodeURIComponent(active.slug);}else{createPanel.classList.remove('hidden');modifyPanel.classList.add('hidden');}siteList.replaceChildren();for(const site of list){const item=document.createElement('div');item.className='site-item';const info=document.createElement('span');info.textContent=site.name;const meta=document.createElement('small');meta.textContent=(site.status==='live'?'En ligne':'Brouillon')+(site.legacy===false?'':' · Ancien');info.append(meta);if(site.status==='live'&&site.slug){const view=document.createElement('div');const link=document.createElement('a');link.href='/s/'+encodeURIComponent(site.slug);link.target='_blank';link.rel='noopener';link.textContent='Voir ↗';view.append(link);info.append(view);}const right=document.createElement('span');const credits=document.createElement('span');credits.className='credits';credits.textContent=(site.credits??0)+' crédits';right.append(credits);const del=document.createElement('button');del.className='secondary';del.style.marginLeft='0.6rem';del.textContent='Supprimer';del.onclick=async()=>{if(!confirm('Supprimer définitivement ce portfolio ?'))return;try{await api('/api/sites/'+encodeURIComponent(site.id),{method:'DELETE'});await refreshSites();statusBox.textContent='Portfolio supprimé.';}catch(error){statusBox.textContent=error.message;}};right.append(del);item.append(info,right);siteList.append(item);}}catch(error){siteList.textContent=error.message;}}
 document.getElementById('mic').addEventListener('click',()=>{const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SpeechRecognition){statusBox.textContent='La dictée n’est pas disponible dans ce navigateur. Tu peux écrire ton brief.';return;}const recognition=new SpeechRecognition();recognition.lang='fr-FR';recognition.interimResults=false;recognition.onresult=(event)=>{const promptField=document.getElementById('prompt');promptField.value+=(promptField.value?' ':'')+event.results[0][0].transcript;};recognition.onerror=()=>{statusBox.textContent='La dictée a échoué. Essaie à nouveau ou écris ton brief.';};recognition.start();statusBox.textContent='Je t’écoute…';recognition.onend=()=>{if(statusBox.textContent==='Je t’écoute…')statusBox.textContent='';};});
 createForm.addEventListener('submit',async(event)=>{event.preventDefault();createButton.disabled=true;document.getElementById('view-link').classList.add('hidden');statusBox.textContent='Création du portfolio…';try{const payload=Object.fromEntries(new FormData(createForm));const site=await api('/api/sites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});statusBox.textContent='Génération du contenu et du site…';const result=await api('/api/sites/'+encodeURIComponent(site.id)+'/v1',{method:'POST'});statusBox.textContent='Ta première version est en ligne. Style proposé : '+(result.designDirection||'direction visuelle adaptée à tes projets')+'.';const viewLink=document.getElementById('view-link-a');viewLink.href='/s/'+encodeURIComponent(result.slug||site.slug);document.getElementById('view-link').classList.remove('hidden');createForm.reset();await refreshSites();}catch(error){statusBox.textContent=error.message;}finally{createButton.disabled=false;}});
 const editForm=document.getElementById('edit-form');const editButton=document.getElementById('edit-submit');
 function dictate(targetId,statusEl){const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SpeechRecognition){statusEl.textContent='La dictée n’est pas disponible dans ce navigateur. Tu peux écrire.';return;}const recognition=new SpeechRecognition();recognition.lang='fr-FR';recognition.interimResults=false;recognition.onresult=(event)=>{const field=document.getElementById(targetId);field.value+=(field.value?' ':'')+event.results[0][0].transcript;};recognition.onerror=()=>{statusEl.textContent='La dictée a échoué. Essaie à nouveau ou écris.';};recognition.start();statusEl.textContent='Je t’écoute…';recognition.onend=()=>{if(statusEl.textContent==='Je t’écoute…')statusEl.textContent='';};}
 document.getElementById('mic2').addEventListener('click',()=>dictate('edit-prompt',document.getElementById('modify-status')));
 editForm.addEventListener('submit',async(event)=>{event.preventDefault();editButton.disabled=true;document.getElementById('view-link').classList.add('hidden');statusBox.textContent='Modification en cours…';try{const siteId=document.getElementById('edit-site').value;const prompt=document.getElementById('edit-prompt').value;const result=await api('/api/sites/'+encodeURIComponent(siteId)+'/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});statusBox.textContent='C’est en ligne. ('+(result.credits??0)+' crédits restants)';const viewLink=document.getElementById('view-link-a');viewLink.href='/s/'+encodeURIComponent(result.slug);document.getElementById('view-link').classList.remove('hidden');document.getElementById('edit-prompt').value='';await refreshSites();}catch(error){statusBox.textContent=error.message;}finally{editButton.disabled=false;}});
+document.getElementById('modify-delete').addEventListener('click',async()=>{if(!confirm('Supprimer définitivement ce portfolio ?'))return;try{const siteId=document.getElementById('edit-site').value;await api('/api/sites/'+encodeURIComponent(siteId),{method:'DELETE'});await refreshSites();statusBox.textContent='Portfolio supprimé. Ta première génération gratuite reste utilisée.';}catch(error){statusBox.textContent=error.message;}});
 document.getElementById('logout').addEventListener('click',async()=>{try{await fetch('/api/auth/logout',{method:'POST'});}finally{window.location.href='/login';}});refreshSites();
 </script></body></html>`;
 
@@ -393,7 +385,10 @@ const server = createServer(async (req, res) => {
 
   if (req.method === 'GET' && url.pathname === '/login') {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.end(AUTH_MODE === 'magic' ? LOGIN_PAGE : LOGIN_SETUP_PAGE);
+    const loginPage = (AUTH_MODE === 'magic' ? LOGIN_PAGE : LOGIN_SETUP_PAGE)
+      .replaceAll('href="/login"', 'href="/"')
+      .replace('<p class="footnote">Le lien expire', '<p class="footnote"><a href="/">← Retour à Folioflash</a></p><p class="footnote">Le lien expire');
+    res.end(loginPage);
     return;
   }
   if (req.method === 'POST' && url.pathname === '/api/auth/request') {
@@ -450,7 +445,7 @@ const server = createServer(async (req, res) => {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     if (!token || !record || record.expiresAt <= Date.now()) {
       res.statusCode = 400;
-      res.end(LOGIN_PAGE.replace('Bienvenue', 'Lien expiré').replace('Ton espace créatif.', 'Demande un nouveau lien pour te connecter.'));
+      res.end(LOGIN_PAGE.replaceAll('href="/login"', 'href="/"').replace('Bienvenue', 'Lien expiré').replace('Ton espace créatif.', 'Demande un nouveau lien pour te connecter.'));
       return;
     }
     // A confirmation POST avoids email security scanners consuming one-time links.
@@ -482,7 +477,7 @@ const server = createServer(async (req, res) => {
       }
       magicLinks.delete(tokenHash);
       const email = record.email;
-      if (!users.has(email)) users.set(email, { email, createdAt: new Date().toISOString() });
+      accountFor(email);
       const sessionToken = createOpaqueToken();
       sessions.set(hashSession(sessionToken), { email, createdAt: Date.now(), expiresAt: Date.now() + SESSION_TTL_MS });
       saveState();
@@ -515,6 +510,11 @@ const server = createServer(async (req, res) => {
   if (req.method === 'GET' && url.pathname === '/studio') {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.end(FORM
+      .replace('</head>', '<style>.workspace{grid-template-columns:minmax(0,1fr)}</style></head>')
+      .replace(/<aside class="panel">[\s\S]*?<\/aside>/, '')
+      .replace('</main>', '<div class="hidden" id="site-list" aria-hidden="true"></div></main>')
+      .replace('3 étapes, 5 minutes.', 'Ta première génération est offerte — un seul portfolio par adresse email.')
+      .replace('<button id="modify-recharge" class="primary" type="button">Recharger 5 €</button>', '<p class="hint">La recharge de crédits sera bientôt disponible.</p>')
       .replaceAll('@@EMAIL@@', escapeHtml(currentUser?.email ?? ''))
       .replace('@@LOGOUT_CLASS@@', AUTH_MODE === 'magic' ? '' : 'hidden'));
     return;
@@ -563,7 +563,7 @@ const server = createServer(async (req, res) => {
     const ownedSites = [...sites.values()].filter((site) =>
       AUTH_MODE === 'basic'
         ? !site.ownerEmail || site.ownerEmail === currentUser?.email
-        : site.ownerEmail === currentUser?.email,
+        : site.ownerEmail === currentUser?.email && site.legacy !== true,
     );
     send(res, 200, ownedSites.map((site) => ({
       id: site.id,
@@ -572,7 +572,8 @@ const server = createServer(async (req, res) => {
       status: site.status,
       motif: site.motif,
       legacy: site.legacy !== false,
-      credits: credits.get(site.id) ?? 0,
+      credits: credits.get(site.ownerEmail) ?? 0,
+      firstGenerationFree: !users.get(site.ownerEmail)?.firstGenerationUsed,
     })));
     return;
   }
@@ -589,15 +590,16 @@ const server = createServer(async (req, res) => {
         send(res, 400, { error: 'name, craft and prompt are required' });
         return;
       }
-      // One active portfolio per account: pre-policy sites are grandfathered as legacy.
+      // One active portfolio per account; imported historical pilots remain archived.
       const ownerEmail = currentUser?.email ?? '';
       if (AUTH_MODE === 'magic') {
-        const active = [...sites.values()].find((site) => site.ownerEmail === ownerEmail && site.legacy === false);
+        const active = [...sites.values()].find((site) => site.ownerEmail === ownerEmail && site.legacy !== true);
         if (active) {
-          send(res, 409, { error: 'one portfolio per account — modify it or delete it first', siteId: active.id });
+          send(res, 409, { error: 'Tu as déjà un portfolio. Modifie celui-ci ou supprime-le avant d’en créer un autre.', siteId: active.id });
           return;
         }
       }
+      accountFor(ownerEmail);
       const id = `site_${++seq}`;
       const slug = name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       const site = {
@@ -609,9 +611,8 @@ const server = createServer(async (req, res) => {
         status: 'draft',
       };
       sites.set(id, site);
-      credits.set(id, 3); // test: 3 free edits, V1 build itself is free
       saveState();
-      send(res, 201, { id: site.id, name: site.name, status: site.status, credits: 3 });
+      send(res, 201, { id: site.id, name: site.name, status: site.status, credits: credits.get(ownerEmail) ?? 0, firstGenerationFree: !users.get(ownerEmail)?.firstGenerationUsed });
     } catch (err) {
       send(res, 400, { error: err.message });
     }
@@ -619,21 +620,20 @@ const server = createServer(async (req, res) => {
   }
   if (m && req.method === 'GET' && !m[3]) {
     const site = sites.get(m[1]);
-    if (!site || (AUTH_MODE === 'magic' && site.ownerEmail !== currentUser?.email)) {
+    if (!site || (AUTH_MODE === 'magic' && (site.ownerEmail !== currentUser?.email || site.legacy === true))) {
       send(res, 404, { error: 'unknown site' });
       return;
     }
-    send(res, 200, { ...site, credits: credits.get(m[1]) ?? 0 });
+    send(res, 200, { ...site, credits: credits.get(site.ownerEmail) ?? 0, firstGenerationFree: !users.get(site.ownerEmail)?.firstGenerationUsed });
     return;
   }
   if (m && req.method === 'DELETE' && !m[3]) {
     const site = sites.get(m[1]);
-    if (!site || (AUTH_MODE === 'magic' && site.ownerEmail !== currentUser?.email)) {
+    if (!site || (AUTH_MODE === 'magic' && (site.ownerEmail !== currentUser?.email || site.legacy === true))) {
       send(res, 404, { error: 'unknown site' });
       return;
     }
     sites.delete(m[1]);
-    credits.delete(m[1]);
     if (site.distDir) rmSync(path.resolve(STUDIO_DIR, site.distDir, '..'), { recursive: true, force: true });
     lastLiveDir = null;
     for (const candidate of [...sites.values()].reverse()) {
@@ -653,11 +653,19 @@ const server = createServer(async (req, res) => {
   }
   if (m && req.method === 'POST' && (m[3] === 'v1' || m[3] === 'edit')) {
     const site = sites.get(m[1]);
-    if (!site || (AUTH_MODE === 'magic' && site.ownerEmail !== currentUser?.email)) {
+    if (!site || (AUTH_MODE === 'magic' && (site.ownerEmail !== currentUser?.email || site.legacy === true))) {
       send(res, 404, { error: 'unknown site' });
       return;
     }
     const kind = m[3];
+    const accountEmail = site.ownerEmail || currentUser?.email || '';
+    const account = accountFor(accountEmail);
+    if (site.status === 'building') {
+      send(res, 409, { error: 'Une génération est déjà en cours pour ce portfolio.' });
+      return;
+    }
+    const freeFirstGeneration = kind === 'v1' && !account?.firstGenerationUsed;
+    const requiresCredit = !freeFirstGeneration;
     try {
       const body = kind === 'edit' ? await readJson(req) : {};
       const editPrompt = kind === 'edit' ? String(body.prompt ?? '').trim() : '';
@@ -671,13 +679,16 @@ const server = createServer(async (req, res) => {
         send(res, 400, { error: 'prompt is required' });
         return;
       }
-      if (kind === 'edit') {
-        const balance = credits.get(m[1]) ?? 0;
+      if (requiresCredit) {
+        const balance = credits.get(accountEmail) ?? 0;
         if (balance < 1) {
-          send(res, 402, { error: 'no credits left — buy more (Stripe in M1-next)' });
+          const message = account?.firstGenerationUsed
+            ? 'Tu as déjà utilisé ta génération offerte. Il te faut des crédits pour continuer ; la recharge sera bientôt disponible.'
+            : 'La première génération est offerte. Les modifications suivantes nécessitent des crédits ; la recharge sera bientôt disponible.';
+          send(res, 402, { error: message });
           return;
         }
-        credits.set(m[1], balance - 1);
+        credits.set(accountEmail, balance - 1);
       }
       site.status = 'building';
       saveState();
@@ -694,6 +705,7 @@ const server = createServer(async (req, res) => {
       site.theme = result.theme ?? site.theme;
       site.motif = result.motif ?? site.motif ?? 'cercles';
       site.designDirection = result.designDirection;
+      if (freeFirstGeneration && account) account.firstGenerationUsed = true;
       if (result.absDistDir) lastLiveDir = result.absDistDir;
       saveState();
       logJob({ kind: `${kind}-request`, siteId: m[1], slug: site.slug, ...result.usage });
@@ -705,15 +717,15 @@ const server = createServer(async (req, res) => {
         motif: site.motif,
         theme: site.theme,
         designDirection: site.designDirection,
-        credits: credits.get(m[1]) ?? 0,
+        credits: credits.get(accountEmail) ?? 0,
         usage: result.usage,
       });
     } catch (err) {
       site.status = 'failed';
-      if (kind === 'edit') credits.set(m[1], (credits.get(m[1]) ?? 0) + 1);
+      if (requiresCredit) credits.set(accountEmail, (credits.get(accountEmail) ?? 0) + 1);
       saveState();
       logJob({ kind: `${kind}-request`, siteId: m[1], status: 'failed', error: err.message });
-      send(res, 500, { error: err.message, credits: credits.get(m[1]) ?? 0 });
+      send(res, 500, { error: err.message, credits: credits.get(accountEmail) ?? 0 });
     }
     return;
   }

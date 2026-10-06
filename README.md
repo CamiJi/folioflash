@@ -18,7 +18,7 @@
 1. **Décris** ton portfolio par texte ou par la voix ; l'upload d'images reste à construire.
 2. **Prévisualise** la V1 dans le Studio. Le client n'obtiendra pas de sous-domaine Folioflash.
 3. **Publie** avec ton propre domaine : tu le gardes chez ton registrar et pointes les DNS vers notre serveur (parcours à construire).
-4. **Modifie** ton site par prompt ; estimation avant facturation à construire.
+4. **Modifie** ton site par prompt ; la première génération est offerte, puis les crédits seront nécessaires (estimation avant facturation à construire).
 
 ## Stack (proven on `earlyreflect`)
 
@@ -40,7 +40,7 @@ Voir `docs/couts.md`. Le nano actuel n'est pas une capacité illimitée : nombre
 ## Status / roadmap
 
 - **Prototype** : Studio, génération LLM et template visibles sur le serveur.
-- **M1** : activation du lien magique (clé et expéditeur Brevo à configurer), import profil, optimisation assets, benchmark modèles, multi-sites/domaines clients, Stripe test/live.
+- **M1** : lien magique confirmé, SQLite et première génération gratuite par compte intégrés ; logout/retrait Basic Auth nano, import profil, optimisation assets, benchmark modèles, domaines clients, Stripe test/live restent à traiter.
 - **M2** : rollback, industrialisation et migration serveur si capacité atteinte ; blog SEO et LinkedIn validés par humain.
 
 See `docs/roadmap.md`.

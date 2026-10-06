@@ -13,13 +13,17 @@ Create `deploy/.env` on the nano (never commit it), with `LLM_PROVIDER`,
 provider-reported token/cost usage. Current personal pilot uses the configured
 OpenRouter model; use a dedicated Folioflash key for production/beta.
 
-Magic-link activation requires email provider credentials (Brevo SMTP/API or Resend) and a verified
-sender identity. Configure `EMAIL_PROVIDER=brevo-smtp`, `SMTP_HOST`, `SMTP_PORT`,
+Magic-link authentication requires email provider credentials (Brevo SMTP/API or Resend) and a verified
+sender identity. Configure `AUTH_MODE=magic`, `EMAIL_PROVIDER=brevo-smtp`, `SMTP_HOST`, `SMTP_PORT`,
 `SMTP_SECURITY`, `SMTP_LOGIN`, `SMTP_PASS` (or the corresponding API-key variables),
 `MAIL_FROM`, a random `SESSION_SECRET` (32+ chars), `PUBLIC_BASE_URL`, and a pilot
-`MAGIC_ALLOWED_EMAILS` list; verify login,
-logout and link expiry before changing `AUTH_MODE=basic` to `AUTH_MODE=magic`. Do not
-enable public signup or disable Basic Auth before that smoke test and the Stripe wallet.
+`MAGIC_ALLOWED_EMAILS` list. Smoke-test login, logout and link expiry before opening signup.
+Camille confirmed receipt and successful login on 2026-10-06; Basic Auth is already inactive
+on the nano (`GET /studio` redirects unauthenticated visitors to `/login`). Keep
+`PUBLIC_SIGNUP_ENABLED=false` until pilot onboarding is ready.
+Node's built-in SQLite runtime needs Node 22.12+ and the `--experimental-sqlite` flag (already
+set by the Docker command). Existing `state.json`/`jobs.jsonl` are imported once; retain them
+until the SQLite backup/restore smoke test passes.
 
 ```bash
 cd /var/www/html/sideprojects/folioflash

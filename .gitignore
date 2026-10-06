@@ -7,6 +7,8 @@ dist/
 studio/data/
 *.sqlite
 *.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
 
 # secrets — jamais commité
 .secrets.env

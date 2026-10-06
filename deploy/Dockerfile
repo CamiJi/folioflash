@@ -17,4 +17,4 @@ RUN mkdir -p studio/data \
 
 ENV PORT=4322 NODE_BIN=node TEMPLATE_DIR=/app/template-folio
 EXPOSE 4322
-CMD ["node", "studio/server.mjs"]
+CMD ["node", "--experimental-sqlite", "studio/server.mjs"]
