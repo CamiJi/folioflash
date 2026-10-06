@@ -13,8 +13,8 @@
 - [x] Code magic link (15 min, usage unique, confirmation anti-scanner, sessions HttpOnly/Secure/SameSite, isolation par email) + tests intégration
 - [x] SMTP Brevo copié sur le nano et authentification vérifiée (aucun email envoyé) ; Basic Auth maintenu en attendant le test de livraison
 - [x] Domaine retiré de la vitrine publique (FR/EN) : connexion → infos/LinkedIn → récit → site ; le DNS reste un sujet interne/opérateur
-- [x] `AUTH_MODE=magic` activé avec allowlist `aubertcam@gmail.com`, lien magique demandé (202) — en attente de confirmation de réception email
-- [ ] Confirmer la réception du lien magique et la connexion complète, puis retirer le Basic Auth provisoire
+- [x] `AUTH_MODE=magic` activé avec allowlist `aubertcam@gmail.com`, lien magique demandé (202) — réception email confirmée 2026-10-06
+- [ ] Tester la déconnexion, puis retirer le Basic Auth provisoire (réception + session confirmées 2026-10-06)
 - [ ] Remplacer state JSON pilote par SQLite pour comptes/sites/jobs/paiements/crédits
 - [ ] Import de profil V1 par texte/document fourni par l'utilisateur ; URL LinkedIn conservée comme lien, sans scraping ; revue/confirmation avant génération
 - [x] Un portfolio actif par compte (409 + écran « Modifier mon portfolio », suppression RGPD) ; filtre anti-emails jetables sur le lien magique
