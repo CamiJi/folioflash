@@ -46,7 +46,7 @@ export async function runJob({ slug, kind, profile, prompt }) {
     name: profile.name,
     craft: profile.craft,
     prompt,
-    palette: profile.palette,
+    theme: profile.theme,
     motif: profile.motif,
     stylePreference: profile.stylePreference,
     kind,
@@ -62,7 +62,7 @@ export async function runJob({ slug, kind, profile, prompt }) {
   const nm = path.join(buildDir, 'node_modules');
   if (!existsSync(nm)) symlinkSync(path.join(TEMPLATE_DIR, 'node_modules'), nm, 'dir');
 
-  // site.json = profile (owner) + generated copy + palette
+  // site.json = profile (owner) + generated copy + theme
   writeFileSync(
     path.join(buildDir, 'src', 'data', 'site.json'),
     `${JSON.stringify(
@@ -70,8 +70,9 @@ export async function runJob({ slug, kind, profile, prompt }) {
         name: profile.name,
         craft: profile.craft,
         email: profile.email ?? 'hello@example.com',
-        palette: generated.palette ?? profile.palette,
+        palette: profile.palette ?? 'paper',
         motif: generated.motif ?? profile.motif ?? 'cercles',
+        theme: generated.theme ?? profile.theme,
         socials: [],
         tagline: generated.tagline,
         bio: generated.bio,
@@ -106,7 +107,7 @@ export async function runJob({ slug, kind, profile, prompt }) {
     status: 'live',
     distDir: path.join('data', 'builds', slug, 'dist'),
     absDistDir: path.join(buildDir, 'dist'),
-    palette: generated.palette ?? profile.palette,
+    theme: generated.theme ?? profile.theme,
     motif: generated.motif ?? profile.motif ?? 'cercles',
     designDirection: generated.designDirection,
     usage,

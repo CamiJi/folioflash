@@ -18,45 +18,86 @@ const DEFAULT_PRICES = {
   local: { in: 0, out: 0 },
 };
 
-const PALETTES = ['paper', 'iris', 'forest', 'boucher', 'atelier', 'studio'];
 const MOTIFS = ['cercles', 'topo', 'onde', 'grille', 'botanique', 'chevrons'];
-export { PALETTES, MOTIFS, styleForCraft };
+const THEME_KEYS = ['paper', 'surface', 'ink', 'muted', 'rule', 'brand', 'brandStrong', 'artOne', 'artTwo', 'artThree'];
+
+const FALLBACK_THEMES = {
+  boucher: {
+    paper: '#faf9f5', surface: '#ffffff', ink: '#1d201c', muted: '#68705f', rule: '#e2e0d4',
+    brand: '#2f7d3a', brandStrong: '#1f5c28', artOne: '#f1efe4', artTwo: '#dde8d2', artThree: '#bcd8b4',
+  },
+  studio: {
+    paper: '#141114', surface: '#1f1a1c', ink: '#f6efe4', muted: '#c2b3a6', rule: '#443a35',
+    brand: '#d9a441', brandStrong: '#f0c264', artOne: '#5c4a2e', artTwo: '#8a6a35', artThree: '#3d4a52',
+  },
+  atelier: {
+    paper: '#f6efe3', surface: '#fffdf6', ink: '#2b2118', muted: '#7a6a58', rule: '#e3d5bd',
+    brand: '#b4552d', brandStrong: '#8c3f20', artOne: '#e8b48f', artTwo: '#d98e5f', artThree: '#a9b39a',
+  },
+  forest: {
+    paper: '#edf1e8', surface: '#fbfcf8', ink: '#1c2a22', muted: '#59685e', rule: '#d1d9cc',
+    brand: '#276b50', brandStrong: '#174d38', artOne: '#dda1aa', artTwo: '#e7c45a', artThree: '#75a99a',
+  },
+  paper: {
+    paper: '#f5f3eb', surface: '#fffefa', ink: '#192126', muted: '#62696a', rule: '#d8d7cc',
+    brand: '#5144d6', brandStrong: '#382bb5', artOne: '#e6a4b7', artTwo: '#f0cb60', artThree: '#82b8aa',
+  },
+};
 
 /** Deterministic craft fallback when the model returns an invalid style. */
 function styleForCraft(craft = '') {
   const c = craft.toLowerCase();
   if (/boucher|charcut|traiteur|boulanger|pâtissier|fromager|poissonnier|cuisine|chef|restaurant/.test(c)) {
-    return { palette: 'boucher', motif: 'grille' };
+    return { theme: FALLBACK_THEMES.boucher, motif: 'grille' };
   }
   if (/sound|audio|musique|music|studio|dj|podcast|voix/.test(c)) {
-    return { palette: 'studio', motif: 'onde' };
+    return { theme: FALLBACK_THEMES.studio, motif: 'onde' };
   }
   if (/géolog|geolog|mine|mines|carrière|topograph|cartograph|architect|urbaniste|paysagiste/.test(c)) {
-    return { palette: 'forest', motif: 'topo' };
+    return { theme: FALLBACK_THEMES.forest, motif: 'topo' };
   }
   if (/céramique|céramiste|céram|potier|poterie|sculpt|peintre|peinture|artisan/.test(c)) {
-    return { palette: 'atelier', motif: 'botanique' };
+    return { theme: FALLBACK_THEMES.atelier, motif: 'botanique' };
   }
-  if (/photo|vidéo|video|ciné|designer|graphiste|illustra|développeur|dev |code/.test(c)) {
-    return { palette: 'paper', motif: 'cercles' };
-  }
-  return { palette: 'paper', motif: 'cercles' };
+  return { theme: FALLBACK_THEMES.paper, motif: 'cercles' };
 }
 
+const isHex = (value) => typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value);
+
+function luminance(hex) {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const v = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(a, b) {
+  const [l1, l2] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (l1 + 0.05) / (l2 + 0.05);
+}
+
+/** A theme is usable only if text stays readable on its background. */
+function isReadableTheme(theme) {
+  if (!theme || !THEME_KEYS.every((key) => isHex(theme[key]))) return false;
+  return contrastRatio(theme.ink, theme.paper) >= 4.5 && contrastRatio(theme.brand, theme.paper) >= 3;
+}
+
+export { MOTIFS, THEME_KEYS, FALLBACK_THEMES, styleForCraft, isReadableTheme };
+
 const SYSTEM = `You generate portfolio content as STRICT JSON, no markdown, no commentary.
-Shape: {"tagline":str,"bio":str,"palette":"paper|iris|forest|boucher|atelier|studio","motif":"cercles|topo|onde|grille|botanique|chevrons","designDirection":str(max 160),"fr":{"tagline":str,"bio":str},
+Shape: {"tagline":str,"bio":str,"theme":{"paper":hex,"surface":hex,"ink":hex,"muted":hex,"rule":hex,"brand":hex,"brandStrong":hex,"artOne":hex,"artTwo":hex,"artThree":hex},"motif":"cercles|topo|onde|grille|botanique|chevrons","designDirection":str(max 160),"fr":{"tagline":str,"bio":str},
 "projects":[{"title":str,"role":str,"years":str,"summary":str(max 200 chars),
 "fr":{"title":str,"role":str,"summary":str(max 200 chars)}}]}
 Rules: 3 projects max, primary project copy in English, accurate French translation in fr,
 summaries ≤ 200 chars per language, no lorem ipsum, tone direct and concrete. If no style preference
 is supplied, propose a specific visual direction based on craft and projects, not generic adjectives.
-CRITICAL — pick the palette AND motif that fit the craft, not the default:
-- butcher/charcutier/caterer/baker/chef/restaurant → palette "boucher" (clean white, parsley green), motif "grille"
-- sound designer/musician/DJ/audio/podcast → palette "studio" (warm dark, amber), motif "onde"
-- geologist/mining/surveyor/architect/landscaper → palette "forest", motif "topo"
-- ceramist/potter/sculptor/painter/artisan → palette "atelier" (terracotta), motif "botanique"
-- photographer/videographer/designer/illustrator/developer → palette "paper", motif "cercles"
-Use any other palette/motif only with a strong, craft-specific reason.`;
+CRITICAL — create a FRESH color theme for THIS craft on the spot (never reuse a default):
+every hex must be a 6-digit color like "#2f7d3a". Text must stay readable: ink on paper and
+brand on paper need strong contrast. Examples of fitting directions (adapt, don't copy):
+butcher → near-white background + parsley green accent, minimal color; sound designer →
+warm dark background + amber accent; geologist → deep green tones + topographic motif;
+ceramist → warm terracotta tones. Pick the motif that fits the craft.`;
 
 function estimateCost(provider, tokensIn, tokensOut) {
   const p = DEFAULT_PRICES[provider] ?? DEFAULT_PRICES.local;
@@ -66,7 +107,7 @@ function estimateCost(provider, tokensIn, tokensOut) {
 }
 
 const userBrief = (profile, prompt, stylePreference = '') =>
-  `Name: ${profile.name}\nCraft: ${profile.craft}\nCurrent palette: ${profile.palette ?? 'none selected'} (V1: always choose the palette AND motif that fit the craft, never the default)\nStyle preference: ${stylePreference || 'none provided; propose a direction that fits the craft, projects, and brief'}\nBrief: ${prompt}`;
+  `Name: ${profile.name}\nCraft: ${profile.craft}\nStyle preference: ${stylePreference || 'none provided; create a fresh theme fitted to the craft and projects'}\nBrief: ${prompt}`;
 
 async function callAnthropic(prompt, profile, stylePreference) {
   const model = process.env.LLM_MODEL ?? 'claude-haiku-4-5-20251001';
@@ -173,28 +214,29 @@ function localFallback(prompt, profile, stylePreference) {
   };
 }
 
-export async function generateSite({ name, craft, prompt, palette, motif, stylePreference = '', kind = 'v1' }) {
+export async function generateSite({ name, craft, prompt, theme, motif, stylePreference = '', kind = 'v1' }) {
   const provider = (process.env.LLM_PROVIDER ?? '').toLowerCase();
   const hasKey = Boolean(process.env.LLM_API_KEY);
 
   if (['anthropic', 'openai', 'openrouter'].includes(provider) && hasKey) {
       const result = provider === 'anthropic'
-        ? await callAnthropic(prompt, { name, craft, palette }, stylePreference)
+        ? await callAnthropic(prompt, { name, craft }, stylePreference)
         : provider === 'openrouter'
-          ? await callOpenRouter(prompt, { name, craft, palette }, stylePreference)
-          : await callOpenAI(prompt, { name, craft, palette }, stylePreference);
+          ? await callOpenRouter(prompt, { name, craft }, stylePreference)
+          : await callOpenAI(prompt, { name, craft }, stylePreference);
       const { text, in: tokensIn, out: tokensOut } = result;
       const parsed = JSON.parse(text);
       if (!parsed.tagline || !parsed.bio || !Array.isArray(parsed.projects)) {
         throw new Error('bad shape');
       }
-      const explicitlyChangesPalette = /\b(?:palette|theme|th[eè]me|iris|forest|paper|boucher|atelier|studio|dark|sombre|light|clair|color|colour|couleur|bright|style)\b/i.test(`${prompt} ${stylePreference}`);
+      const explicitlyChangesStyle = /\b(?:palette|theme|th[eè]me|motif|dark|sombre|light|clair|color|colour|couleur|bright|style|couleurs?)\b/i.test(`${prompt} ${stylePreference}`);
       const fallback = styleForCraft(craft);
-      // V1 always takes the model's craft-fitted style; edits keep the current one unless asked.
-      const chosenPalette = kind === 'v1' || explicitlyChangesPalette
-        ? (PALETTES.includes(parsed.palette) ? parsed.palette : fallback.palette)
-        : (palette ?? fallback.palette);
-      const chosenMotif = kind === 'v1' || explicitlyChangesPalette
+      // V1 always takes the freshly created style; edits keep the current one unless asked.
+      const chooseStyle = kind === 'v1' || explicitlyChangesStyle;
+      const chosenTheme = chooseStyle
+        ? (isReadableTheme(parsed.theme) ? parsed.theme : fallback.theme)
+        : (isReadableTheme(theme) ? theme : fallback.theme);
+      const chosenMotif = chooseStyle
         ? (MOTIFS.includes(parsed.motif) ? parsed.motif : fallback.motif)
         : (motif ?? fallback.motif);
       const projects = parsed.projects.slice(0, 6).map((p, i) => ({
@@ -216,7 +258,7 @@ export async function generateSite({ name, craft, prompt, palette, motif, styleP
         site: {
           tagline: String(parsed.tagline).slice(0, 200),
           bio: String(parsed.bio).slice(0, 200),
-          palette: chosenPalette,
+          theme: chosenTheme,
           motif: chosenMotif,
           designDirection: String(parsed.designDirection ?? stylePreference ?? 'A tailored editorial direction based on the creator’s craft and projects.').slice(0, 160),
           fr: {
@@ -233,5 +275,6 @@ export async function generateSite({ name, craft, prompt, palette, motif, styleP
   // parsing error. The caller should surface the failure and not spend a credit.
   if (provider && hasKey) throw new Error(`Unsupported LLM provider: ${provider}`);
   const fb = localFallback(prompt, { name, craft }, stylePreference);
-  return { site: { palette, ...fb.site }, projects: fb.projects, usage: fb.usage };
+  const fbFallback = styleForCraft(craft);
+  return { site: { theme: theme ?? fbFallback.theme, motif: motif ?? fbFallback.motif, ...fb.site }, projects: fb.projects, usage: fb.usage };
 }

@@ -29,13 +29,19 @@ Chaque portfolio adopte les codes visuels de l'activité du créateur, comme les
 références internes : géologue → barres/cartes de géologie, sound designer →
 ambiance studio d'enregistrement, illustratrice → gouache/couleur.
 
+- Le LLM crée un thème **frais à chaque site** : 10 couleurs hex (`paper`,
+  `surface`, `ink`, `muted`, `rule`, `brand`, `brandStrong`, `artOne`, `artTwo`,
+  `artThree`) adaptées au métier — pas de stock de palettes, pas de défaut
+  réutilisé. Le serveur refuse tout thème illisible (contraste encre/fond et
+  accent/fond) et applique un repli par métier.
 - Le LLM choisit un `motif` dans une allowlist versionnée (`cercles`, `topo`,
-  `onde`, `grille`, `botanique`, `chevrons`) et une `palette` (`paper`, `iris`,
-  `forest`, `boucher`, `atelier`, `studio`), à partir du métier, des projets et
-  des assets. Exemples : boucher → `boucher` + `grille`, sound designer →
-  `studio` + `onde`, géologue → `forest` + `topo`, céramiste → `atelier` +
-  `botanique`. Précisé par l'utilisateur, son choix prime ; un mapping
-  déterministe par métier sert de repli si le modèle répond hors allowlist.
+  `onde`, `grille`, `botanique`, `chevrons`), à partir du métier, des projets et
+  des assets. Exemples : boucher → `grille`, sound designer → `onde`, géologue
+  → `topo`, céramiste → `botanique`. Précisé par l'utilisateur, son choix prime ;
+  un mapping déterministe par métier sert de repli si le modèle répond hors allowlist.
+- Piste future (non implémentée) : si le coût tokens le justifie un jour, stocker
+  les thèmes générés et les réutiliser par similarité ; aujourd'hui on recrée à
+  chaque fois, c'est négligeable.
 
 - Le motif est une donnée structurée validée par le serveur, rendue en CSS/SVG
   déterministe par le template — jamais de code arbitraire généré.

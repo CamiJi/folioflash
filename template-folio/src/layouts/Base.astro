@@ -11,6 +11,24 @@ interface Props {
 
 const { title, description, lang = 'en' } = Astro.props;
 const palette = (site as { palette?: string }).palette ?? 'paper';
+const theme = (site as { theme?: Record<string, string> }).theme;
+const themeVars = theme
+  ? Object.entries({
+      '--color-paper': theme.paper,
+      '--color-surface': theme.surface,
+      '--color-ink': theme.ink,
+      '--color-muted': theme.muted,
+      '--color-rule': theme.rule,
+      '--color-brand': theme.brand,
+      '--color-brand-strong': theme.brandStrong,
+      '--art-one': theme.artOne,
+      '--art-two': theme.artTwo,
+      '--art-three': theme.artThree,
+    })
+    .filter(([, value]) => typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value))
+    .map(([key, value]) => `${key}:${value}`)
+    .join(';')
+  : undefined;
 const base = import.meta.env.BASE_URL;
 const route = (path: string) => `${base}${path.replace(/^\/+/, '')}`;
 const homeHref = route(lang === 'fr' ? 'fr/' : '');
@@ -23,11 +41,11 @@ const nav = [
 ---
 
 <!doctype html>
-<html lang={lang} data-palette={palette}>
+<html lang={lang} data-palette={palette} style={themeVars}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content={palette === 'iris' ? '#171526' : '#f5f3eb'} />
+    <meta name="theme-color" content={theme?.paper ?? (palette === 'iris' ? '#171526' : '#f5f3eb')} />
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta property="og:title" content={title} />

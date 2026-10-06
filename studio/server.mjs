@@ -564,7 +564,7 @@ const server = createServer(async (req, res) => {
       slug: site.slug,
       name: site.name,
       status: site.status,
-      palette: site.palette,
+      motif: site.motif,
       credits: credits.get(site.id) ?? 0,
     })));
     return;
@@ -589,7 +589,6 @@ const server = createServer(async (req, res) => {
         email: publicEmail && isValidEmail(publicEmail) ? publicEmail : '',
         stylePreference,
         ownerEmail: currentUser?.email ?? '',
-        palette: ['paper', 'iris', 'forest', 'boucher', 'atelier', 'studio'].includes(body.palette) ? body.palette : undefined,
         status: 'draft',
       };
       sites.set(id, site);
@@ -650,7 +649,7 @@ const server = createServer(async (req, res) => {
       });
       site.status = result.status;
       site.distDir = result.distDir;
-      site.palette = result.palette ?? site.palette;
+      site.theme = result.theme ?? site.theme;
       site.motif = result.motif ?? site.motif ?? 'cercles';
       site.designDirection = result.designDirection;
       if (result.absDistDir) lastLiveDir = result.absDistDir;
@@ -661,8 +660,8 @@ const server = createServer(async (req, res) => {
         slug: site.slug,
         name: site.name,
         status: site.status,
-        palette: site.palette,
         motif: site.motif,
+        theme: site.theme,
         designDirection: site.designDirection,
         credits: credits.get(m[1]) ?? 0,
         usage: result.usage,
