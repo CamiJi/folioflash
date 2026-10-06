@@ -47,7 +47,9 @@ export async function runJob({ slug, kind, profile, prompt }) {
     craft: profile.craft,
     prompt,
     palette: profile.palette,
+    motif: profile.motif,
     stylePreference: profile.stylePreference,
+    kind,
   });
 
   const buildDir = path.join(ROOT, 'data', 'builds', slug);
@@ -69,6 +71,7 @@ export async function runJob({ slug, kind, profile, prompt }) {
         craft: profile.craft,
         email: profile.email ?? 'hello@example.com',
         palette: generated.palette ?? profile.palette,
+        motif: generated.motif ?? profile.motif ?? 'cercles',
         socials: [],
         tagline: generated.tagline,
         bio: generated.bio,
@@ -104,6 +107,7 @@ export async function runJob({ slug, kind, profile, prompt }) {
     distDir: path.join('data', 'builds', slug, 'dist'),
     absDistDir: path.join(buildDir, 'dist'),
     palette: generated.palette ?? profile.palette,
+    motif: generated.motif ?? profile.motif ?? 'cercles',
     designDirection: generated.designDirection,
     usage,
   };

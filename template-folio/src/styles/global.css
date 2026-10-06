@@ -58,6 +58,48 @@
   --art-three: #75a99a;
 }
 
+:root[data-palette="boucher"] {
+  color-scheme: light;
+  --color-paper: #faf9f5;
+  --color-surface: #ffffff;
+  --color-ink: #1d201c;
+  --color-muted: #68705f;
+  --color-rule: #e2e0d4;
+  --color-brand: #2f7d3a;
+  --color-brand-strong: #1f5c28;
+  --art-one: #f1efe4;
+  --art-two: #dde8d2;
+  --art-three: #bcd8b4;
+}
+
+:root[data-palette="atelier"] {
+  color-scheme: light;
+  --color-paper: #f6efe3;
+  --color-surface: #fffdf6;
+  --color-ink: #2b2118;
+  --color-muted: #7a6a58;
+  --color-rule: #e3d5bd;
+  --color-brand: #b4552d;
+  --color-brand-strong: #8c3f20;
+  --art-one: #e8b48f;
+  --art-two: #d98e5f;
+  --art-three: #a9b39a;
+}
+
+:root[data-palette="studio"] {
+  color-scheme: dark;
+  --color-paper: #141114;
+  --color-surface: #1f1a1c;
+  --color-ink: #f6efe4;
+  --color-muted: #c2b3a6;
+  --color-rule: #443a35;
+  --color-brand: #d9a441;
+  --color-brand-strong: #f0c264;
+  --art-one: #5c4a2e;
+  --art-two: #8a6a35;
+  --art-three: #3d4a52;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -298,6 +340,79 @@
     aspect-ratio: 1;
     transform: translate(-90%, 65%);
     background: rgb(25 33 38 / 8%);
+  }
+
+  /* Craft motifs — deterministic CSS variants chosen by the generator.
+     Default (cercles) keeps the two overlapping discs above. */
+  .project-art--motif-topo::before,
+  .project-art--motif-topo::after {
+    width: 140%;
+    border-radius: 0;
+    border: 0;
+    background: repeating-radial-gradient(circle at 70% 30%, transparent 0 14px, rgb(25 33 38 / 16%) 14px 15px);
+    transform: none;
+  }
+
+  .project-art--motif-topo::after {
+    background: repeating-radial-gradient(circle at 20% 85%, transparent 0 10px, rgb(255 255 255 / 22%) 10px 11px);
+  }
+
+  .project-art--motif-onde::before,
+  .project-art--motif-onde::after {
+    width: 130%;
+    border-radius: 0;
+    border: 0;
+    background: repeating-linear-gradient(90deg, transparent 0 10px, rgb(25 33 38 / 14%) 10px 13px);
+    transform: none;
+  }
+
+  .project-art--motif-onde::after {
+    background: repeating-linear-gradient(90deg, transparent 0 22px, rgb(255 255 255 / 16%) 22px 24px);
+  }
+
+  .project-art--motif-grille::before,
+  .project-art--motif-grille::after {
+    width: 140%;
+    border-radius: 0;
+    border: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 26px, rgb(25 33 38 / 12%) 26px 27px),
+      repeating-linear-gradient(90deg, transparent 0 26px, rgb(25 33 38 / 12%) 26px 27px);
+    transform: none;
+  }
+
+  .project-art--motif-grille::after {
+    background:
+      repeating-linear-gradient(0deg, transparent 0 52px, rgb(255 255 255 / 14%) 52px 53px),
+      repeating-linear-gradient(90deg, transparent 0 52px, rgb(255 255 255 / 14%) 52px 53px);
+  }
+
+  .project-art--motif-botanique::before,
+  .project-art--motif-botanique::after {
+    width: 130%;
+    border-radius: 0;
+    border: 0;
+    background: radial-gradient(circle at 50% 50%, rgb(25 33 38 / 14%) 3px, transparent 4px);
+    background-size: 30px 30px;
+    transform: none;
+  }
+
+  .project-art--motif-botanique::after {
+    background: radial-gradient(circle at 50% 50%, rgb(255 255 255 / 20%) 2px, transparent 3px);
+    background-size: 18px 18px;
+  }
+
+  .project-art--motif-chevrons::before,
+  .project-art--motif-chevrons::after {
+    width: 140%;
+    border-radius: 0;
+    border: 0;
+    background: repeating-linear-gradient(135deg, transparent 0 18px, rgb(25 33 38 / 13%) 18px 20px);
+    transform: none;
+  }
+
+  .project-art--motif-chevrons::after {
+    background: repeating-linear-gradient(45deg, transparent 0 30px, rgb(255 255 255 / 14%) 30px 32px);
   }
 
   .project-art__index {

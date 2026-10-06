@@ -589,7 +589,7 @@ const server = createServer(async (req, res) => {
         email: publicEmail && isValidEmail(publicEmail) ? publicEmail : '',
         stylePreference,
         ownerEmail: currentUser?.email ?? '',
-        palette: ['paper', 'iris', 'forest'].includes(body.palette) ? body.palette : undefined,
+        palette: ['paper', 'iris', 'forest', 'boucher', 'atelier', 'studio'].includes(body.palette) ? body.palette : undefined,
         status: 'draft',
       };
       sites.set(id, site);
@@ -651,6 +651,7 @@ const server = createServer(async (req, res) => {
       site.status = result.status;
       site.distDir = result.distDir;
       site.palette = result.palette ?? site.palette;
+      site.motif = result.motif ?? site.motif ?? 'cercles';
       site.designDirection = result.designDirection;
       if (result.absDistDir) lastLiveDir = result.absDistDir;
       saveState();
@@ -661,6 +662,7 @@ const server = createServer(async (req, res) => {
         name: site.name,
         status: site.status,
         palette: site.palette,
+        motif: site.motif,
         designDirection: site.designDirection,
         credits: credits.get(m[1]) ?? 0,
         usage: result.usage,

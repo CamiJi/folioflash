@@ -29,9 +29,14 @@ Chaque portfolio adopte les codes visuels de l'activité du créateur, comme les
 références internes : géologue → barres/cartes de géologie, sound designer →
 ambiance studio d'enregistrement, illustratrice → gouache/couleur.
 
-- Le LLM choisit un `motif` dans une allowlist versionnée (ex. `topographic`,
-  `waveform`, `blueprint`, `botanical`, `grid`, `halftone`) + une palette, à partir
-  du métier, des projets et des assets. Précisé par l'utilisateur, il prime.
+- Le LLM choisit un `motif` dans une allowlist versionnée (`cercles`, `topo`,
+  `onde`, `grille`, `botanique`, `chevrons`) et une `palette` (`paper`, `iris`,
+  `forest`, `boucher`, `atelier`, `studio`), à partir du métier, des projets et
+  des assets. Exemples : boucher → `boucher` + `grille`, sound designer →
+  `studio` + `onde`, géologue → `forest` + `topo`, céramiste → `atelier` +
+  `botanique`. Précisé par l'utilisateur, son choix prime ; un mapping
+  déterministe par métier sert de repli si le modèle répond hors allowlist.
+
 - Le motif est une donnée structurée validée par le serveur, rendue en CSS/SVG
   déterministe par le template — jamais de code arbitraire généré.
 - Sans visuels client, les couvertures restent typographiques/décoratives et ne

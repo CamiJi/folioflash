@@ -18,13 +18,45 @@ const DEFAULT_PRICES = {
   local: { in: 0, out: 0 },
 };
 
+const PALETTES = ['paper', 'iris', 'forest', 'boucher', 'atelier', 'studio'];
+const MOTIFS = ['cercles', 'topo', 'onde', 'grille', 'botanique', 'chevrons'];
+export { PALETTES, MOTIFS, styleForCraft };
+
+/** Deterministic craft fallback when the model returns an invalid style. */
+function styleForCraft(craft = '') {
+  const c = craft.toLowerCase();
+  if (/boucher|charcut|traiteur|boulanger|pâtissier|fromager|poissonnier|cuisine|chef|restaurant/.test(c)) {
+    return { palette: 'boucher', motif: 'grille' };
+  }
+  if (/sound|audio|musique|music|studio|dj|podcast|voix/.test(c)) {
+    return { palette: 'studio', motif: 'onde' };
+  }
+  if (/géolog|geolog|mine|mines|carrière|topograph|cartograph|architect|urbaniste|paysagiste/.test(c)) {
+    return { palette: 'forest', motif: 'topo' };
+  }
+  if (/céramique|céramiste|céram|potier|poterie|sculpt|peintre|peinture|artisan/.test(c)) {
+    return { palette: 'atelier', motif: 'botanique' };
+  }
+  if (/photo|vidéo|video|ciné|designer|graphiste|illustra|développeur|dev |code/.test(c)) {
+    return { palette: 'paper', motif: 'cercles' };
+  }
+  return { palette: 'paper', motif: 'cercles' };
+}
+
 const SYSTEM = `You generate portfolio content as STRICT JSON, no markdown, no commentary.
-Shape: {"tagline":str,"bio":str,"palette":"paper|iris|forest","designDirection":str(max 160),"fr":{"tagline":str,"bio":str},
+Shape: {"tagline":str,"bio":str,"palette":"paper|iris|forest|boucher|atelier|studio","motif":"cercles|topo|onde|grille|botanique|chevrons","designDirection":str(max 160),"fr":{"tagline":str,"bio":str},
 "projects":[{"title":str,"role":str,"years":str,"summary":str(max 200 chars),
 "fr":{"title":str,"role":str,"summary":str(max 200 chars)}}]}
 Rules: 3 projects max, primary project copy in English, accurate French translation in fr,
 summaries ≤ 200 chars per language, no lorem ipsum, tone direct and concrete. If no style preference
-is supplied, propose a specific visual direction based on craft and projects, not generic adjectives.`;
+is supplied, propose a specific visual direction based on craft and projects, not generic adjectives.
+CRITICAL — pick the palette AND motif that fit the craft, not the default:
+- butcher/charcutier/caterer/baker/chef/restaurant → palette "boucher" (clean white, parsley green), motif "grille"
+- sound designer/musician/DJ/audio/podcast → palette "studio" (warm dark, amber), motif "onde"
+- geologist/mining/surveyor/architect/landscaper → palette "forest", motif "topo"
+- ceramist/potter/sculptor/painter/artisan → palette "atelier" (terracotta), motif "botanique"
+- photographer/videographer/designer/illustrator/developer → palette "paper", motif "cercles"
+Use any other palette/motif only with a strong, craft-specific reason.`;
 
 function estimateCost(provider, tokensIn, tokensOut) {
   const p = DEFAULT_PRICES[provider] ?? DEFAULT_PRICES.local;
@@ -34,7 +66,7 @@ function estimateCost(provider, tokensIn, tokensOut) {
 }
 
 const userBrief = (profile, prompt, stylePreference = '') =>
-  `Name: ${profile.name}\nCraft: ${profile.craft}\nCurrent palette: ${profile.palette ?? 'none selected; choose paper, iris, or forest to fit the craft and projects'} (keep an existing palette unless a change is requested)\nStyle preference: ${stylePreference || 'none provided; propose a direction that fits the craft, projects, and brief'}\nBrief: ${prompt}`;
+  `Name: ${profile.name}\nCraft: ${profile.craft}\nCurrent palette: ${profile.palette ?? 'none selected'} (V1: always choose the palette AND motif that fit the craft, never the default)\nStyle preference: ${stylePreference || 'none provided; propose a direction that fits the craft, projects, and brief'}\nBrief: ${prompt}`;
 
 async function callAnthropic(prompt, profile, stylePreference) {
   const model = process.env.LLM_MODEL ?? 'claude-haiku-4-5-20251001';
@@ -141,7 +173,7 @@ function localFallback(prompt, profile, stylePreference) {
   };
 }
 
-export async function generateSite({ name, craft, prompt, palette, stylePreference = '' }) {
+export async function generateSite({ name, craft, prompt, palette, motif, stylePreference = '', kind = 'v1' }) {
   const provider = (process.env.LLM_PROVIDER ?? '').toLowerCase();
   const hasKey = Boolean(process.env.LLM_API_KEY);
 
@@ -156,12 +188,15 @@ export async function generateSite({ name, craft, prompt, palette, stylePreferen
       if (!parsed.tagline || !parsed.bio || !Array.isArray(parsed.projects)) {
         throw new Error('bad shape');
       }
-      const explicitlyChangesPalette = /\b(?:palette|theme|th[eè]me|iris|forest|paper|dark|sombre|light|clair|color|colour|couleur|bright)\b/i.test(`${prompt} ${stylePreference}`);
-      const chosenPalette = palette && !explicitlyChangesPalette
-        ? palette
-        : ['paper', 'iris', 'forest'].includes(parsed.palette)
-          ? parsed.palette
-          : palette ?? 'paper';
+      const explicitlyChangesPalette = /\b(?:palette|theme|th[eè]me|iris|forest|paper|boucher|atelier|studio|dark|sombre|light|clair|color|colour|couleur|bright|style)\b/i.test(`${prompt} ${stylePreference}`);
+      const fallback = styleForCraft(craft);
+      // V1 always takes the model's craft-fitted style; edits keep the current one unless asked.
+      const chosenPalette = kind === 'v1' || explicitlyChangesPalette
+        ? (PALETTES.includes(parsed.palette) ? parsed.palette : fallback.palette)
+        : (palette ?? fallback.palette);
+      const chosenMotif = kind === 'v1' || explicitlyChangesPalette
+        ? (MOTIFS.includes(parsed.motif) ? parsed.motif : fallback.motif)
+        : (motif ?? fallback.motif);
       const projects = parsed.projects.slice(0, 6).map((p, i) => ({
         title: String(p.title ?? `Project ${i + 1}`),
         role: String(p.role ?? craft),
@@ -182,6 +217,7 @@ export async function generateSite({ name, craft, prompt, palette, stylePreferen
           tagline: String(parsed.tagline).slice(0, 200),
           bio: String(parsed.bio).slice(0, 200),
           palette: chosenPalette,
+          motif: chosenMotif,
           designDirection: String(parsed.designDirection ?? stylePreference ?? 'A tailored editorial direction based on the creator’s craft and projects.').slice(0, 160),
           fr: {
             tagline: String(parsed.fr?.tagline ?? parsed.tagline).slice(0, 200),
