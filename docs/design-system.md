@@ -23,6 +23,22 @@ pas être ses œuvres.
   fontes, images et liens internes doivent tous préfixer cette base. Les futurs
   builds client en production seront faits à `/` ou au domaine personnalisé.
 
+## Motifs par métier (décision produit)
+
+Chaque portfolio adopte les codes visuels de l'activité du créateur, comme les
+références internes : géologue → barres/cartes de géologie, sound designer →
+ambiance studio d'enregistrement, illustratrice → gouache/couleur.
+
+- Le LLM choisit un `motif` dans une allowlist versionnée (ex. `topographic`,
+  `waveform`, `blueprint`, `botanical`, `grid`, `halftone`) + une palette, à partir
+  du métier, des projets et des assets. Précisé par l'utilisateur, il prime.
+- Le motif est une donnée structurée validée par le serveur, rendue en CSS/SVG
+  déterministe par le template — jamais de code arbitraire généré.
+- Sans visuels client, les couvertures restent typographiques/décoratives et ne
+  prétendent pas être ses œuvres ; dès qu'il fournit des images, elles prennent
+  le dessus (optimisées WebP côté serveur).
+- Chaque nouveau motif passe l'audit visuel desktop + mobile avant d'être proposé.
+
 ## Vérification
 
 `npm run check`, `FOLIOFLASH_PREVIEW=true npm run build`, puis audit visuel desktop

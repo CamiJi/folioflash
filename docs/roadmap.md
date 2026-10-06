@@ -11,9 +11,13 @@
 - [x] Studio sur serveur personnel ; Basic Auth provisoire, démo accessible
 - [x] Vitrine et Studio rebrandés aux couleurs Nestor (noir/crème/or, Inter/Playfair Display)
 - [x] Code magic link (15 min, usage unique, confirmation anti-scanner, sessions HttpOnly/Secure/SameSite, isolation par email) + tests intégration
-- [ ] Configurer la clé Brevo et l'expéditeur vérifié, activer `AUTH_MODE=magic` ; Basic Auth reste actif tant que l'envoi email n'est pas vérifié
+- [x] SMTP Brevo copié sur le nano et authentification vérifiée (aucun email envoyé) ; Basic Auth maintenu en attendant le test de livraison
+- [x] Domaine retiré de la vitrine publique (FR/EN) : connexion → infos/LinkedIn → récit → site ; le DNS reste un sujet interne/opérateur
+- [x] `AUTH_MODE=magic` activé avec allowlist `aubertcam@gmail.com`, lien magique demandé (202) — en attente de confirmation de réception email
+- [ ] Confirmer la réception du lien magique et la connexion complète, puis retirer le Basic Auth provisoire
 - [ ] Remplacer state JSON pilote par SQLite pour comptes/sites/jobs/paiements/crédits
 - [ ] Import de profil V1 par texte/document fourni par l'utilisateur ; URL LinkedIn conservée comme lien, sans scraping ; revue/confirmation avant génération
+- [ ] Motifs visuels par métier (allowlist `motif` : topographic, waveform, blueprint, botanical, grid, halftone…) choisis par le LLM depuis l'activité, style explicite prioritaire, audit visuel par motif
 - [ ] Upload d'images : contrôles, optimisation WebP/variantes, retrait EXIF, quotas ; ne pas conserver les originaux
 - [ ] Design inference structuré (palette/layout/typo), modifiable via prompt, sans code arbitraire
 - [ ] Hébergement multi-sites sur le nano : routage Host, DNS du domaine client, provisionnement NPM/TLS automatisé
@@ -32,3 +36,13 @@
 
 ## M3 — Scale
 - [ ] Multi-templates, langues supplémentaires, support DNS amélioré et partenariats
+
+## Lancement — checklist (ordre proposé)
+1. [ ] Lien magique confirmé de bout en bout (réception email + connexion + déconnexion), Basic Auth retiré
+2. [ ] Motifs par métier implémentés et audités (au moins 3 : ex. topographic, waveform, blueprint)
+3. [ ] Upload + optimisation d'images en ligne (quotas, WebP, EXIF retirés, originaux supprimés)
+4. [ ] Import de profil LinkedIn (collage/document + confirmation) branché sur la génération
+5. [ ] Portefeuille 5 € via Stripe test → live (estimation avant job, webhooks idempotents, remboursement si échec)
+6. [ ] 3 pilotes de bout en bout (connexion → site → 1 modification payante) + mesure des coûts réels
+7. [ ] Bouton brouillon LinkedIn opérateur + envoi manuel au réseau
+8. [ ] Seuils nano (RAM/disque/builds) + sauvegardes/restauration testées, plafond de pilotes fixé
