@@ -18,6 +18,7 @@
 - [ ] Remplacer state JSON pilote par SQLite pour comptes/sites/jobs/paiements/crédits
 - [ ] Import de profil V1 par texte/document fourni par l'utilisateur ; URL LinkedIn conservée comme lien, sans scraping ; revue/confirmation avant génération
 - [x] Lien « Voir mon portfolio ↗ » (nouvel onglet) après chaque génération + route publique `/s/<slug>` ; version live unique, pas d'historique utilisateur
+- [x] Styles par métier v1 : 6 palettes (`boucher` blanc/persil, `studio` noir/ambre, `atelier` terracotta…), 6 motifs CSS (`grille`, `onde`, `topo`…), V1 prend le style du LLM, repli déterministe par métier (vérifié : boucher ≠ illustratrice)
 - [ ] Motifs visuels par métier (allowlist `motif` : topographic, waveform, blueprint, botanical, grid, halftone…) choisis par le LLM depuis l'activité, style explicite prioritaire, audit visuel par motif
 - [ ] Upload d'images : contrôles, optimisation WebP/variantes, retrait EXIF, quotas ; ne pas conserver les originaux
 - [ ] Design inference structuré (palette/layout/typo), modifiable via prompt, sans code arbitraire
