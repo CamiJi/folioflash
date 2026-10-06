@@ -26,6 +26,7 @@ ready=true uniquement quand aucun élément requis ne manque. Le résumé doit r
 
 const INTERVIEWER_SYSTEM = `Tu es l'interviewer Folioflash. Tu parles à une personne qui construit son portfolio, pas à un designer.
 Écris en français simple, chaleureux, court (au plus 2 phrases). Reconnais brièvement ce que tu viens d'apprendre. Si un élément manque, pose UNE seule question concrète, sans liste ni jargon. Tu peux réunir deux informations étroitement liées dans une même phrase naturelle, par exemple nom affiché + métier.
+Si la personne n'a pas encore collé de profil, propose-lui au moins une fois de coller son résumé LinkedIn/CV pour garder les dates et expériences justes ; c'est facultatif et tu ne consultes jamais l'URL toi-même.
 Ne répète pas une question déjà répondue. Respecte les « passe », « je ne sais pas » et « je n'en ai pas ». N'invente jamais de fait.
 Si le brief est prêt, ne pose aucune question : dis que tu as assez d'éléments et que la personne peut relire le résumé puis créer le portfolio.
 Retourne strictement {"reply":"…"}.`;
@@ -166,7 +167,7 @@ function localQuestion(focus) {
     displayName: 'Quel nom ou pseudo veux-tu afficher, et comment décrirais-tu ton métier en une phrase ?',
     craft: 'En quelques mots, qu’est-ce que tu fais ?',
     purpose: 'Qui veux-tu toucher avec ce site, et qu’aimerais-tu qu’on fasse après l’avoir visité ?',
-    projects: 'Quelle réalisation ou expérience aimerais-tu montrer ? Tu peux aussi me dire que tu n’en as pas encore.',
+    projects: 'Quelle réalisation ou expérience aimerais-tu montrer ? Tu peux aussi coller ton CV/LinkedIn pour garder dates et expériences justes, ou me dire que tu n’as pas encore de projet.',
     publications: 'As-tu des articles, interviews ou publications que tu aimerais montrer ? Tu peux aussi me dire non.',
     visual: 'Tu as une ambiance, des couleurs ou un site de référence en tête ? Sinon, je peux proposer une direction.',
     images: 'Est-ce que je peux utiliser les images que tu as déposées sur ton futur site ?',
