@@ -59,7 +59,7 @@ function styleForCraft(craft = '') {
   if (/céramique|céramiste|céram|potier|poterie|sculpt|peintre|peinture|artisan/.test(c)) {
     return { theme: FALLBACK_THEMES.atelier, motif: 'botanique' };
   }
-  return { theme: FALLBACK_THEMES.paper, motif: 'cercles' };
+  return null;
 }
 
 const isHex = (value) => typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value);
@@ -86,7 +86,7 @@ function isReadableTheme(theme) {
 export { MOTIFS, THEME_KEYS, FALLBACK_THEMES, styleForCraft, isReadableTheme };
 
 const SYSTEM = `You generate portfolio content as STRICT JSON, no markdown, no commentary.
-Shape: {"tagline":str,"bio":str,"theme":{"paper":hex,"surface":hex,"ink":hex,"muted":hex,"rule":hex,"brand":hex,"brandStrong":hex,"artOne":hex,"artTwo":hex,"artThree":hex},"motif":"cercles|topo|onde|grille|botanique|chevrons","designDirection":str(max 160),"fr":{"tagline":str,"bio":str},
+Shape: {"tagline":str,"bio":str,"theme":{"paper":hex,"surface":hex,"ink":hex,"muted":hex,"rule":hex,"brand":hex,"brandStrong":hex,"artOne":hex,"artTwo":hex,"artThree":hex},"motif":"cercles|topo|onde|grille|botanique|chevrons","art":{"one":hex,"two":hex,"three":hex},"designDirection":str(max 160),"fr":{"tagline":str,"bio":str},
 "projects":[{"title":str,"role":str,"years":str,"summary":str(max 200 chars),
 "fr":{"title":str,"role":str,"summary":str(max 200 chars)}}]}
 Rules: 3 projects max, primary project copy in English, accurate French translation in fr,
@@ -230,15 +230,29 @@ export async function generateSite({ name, craft, prompt, theme, motif, stylePre
         throw new Error('bad shape');
       }
       const explicitlyChangesStyle = /\b(?:palette|theme|th[eè]me|motif|dark|sombre|light|clair|color|colour|couleur|bright|style|couleurs?)\b/i.test(`${prompt} ${stylePreference}`);
-      const fallback = styleForCraft(craft);
-      // V1 always takes the freshly created style; edits keep the current one unless asked.
-      const chooseStyle = kind === 'v1' || explicitlyChangesStyle;
-      const chosenTheme = chooseStyle
-        ? (isReadableTheme(parsed.theme) ? parsed.theme : fallback.theme)
-        : (isReadableTheme(theme) ? theme : fallback.theme);
-      const chosenMotif = chooseStyle
-        ? (MOTIFS.includes(parsed.motif) ? parsed.motif : fallback.motif)
-        : (motif ?? fallback.motif);
+      const hasPreference = stylePreference.trim() !== '' || explicitlyChangesStyle;
+      const trade = styleForCraft(craft);
+      const fallbackTheme = trade?.theme ?? FALLBACK_THEMES.paper;
+      const fallbackMotif = trade?.motif ?? 'cercles';
+      // Known trade + no preference: enforce the house direction (the obvious 80%
+      // answer), but keep the model's fresh cover art colors. Otherwise the model
+      // creates the whole theme, guarded by readability + deterministic fallback.
+      const freshArt = (source) =>
+        ['one', 'two', 'three'].every((k) => /^#[0-9a-fA-F]{6}$/.test(source?.[k]))
+          ? { artOne: source.one, artTwo: source.two, artThree: source.three }
+          : {};
+      let chosenTheme;
+      let chosenMotif;
+      if (kind === 'v1' && trade && !hasPreference) {
+        chosenTheme = { ...trade.theme, ...freshArt(parsed.art) };
+        chosenMotif = trade.motif;
+      } else if (kind === 'v1' || explicitlyChangesStyle) {
+        chosenTheme = isReadableTheme(parsed.theme) ? parsed.theme : fallbackTheme;
+        chosenMotif = MOTIFS.includes(parsed.motif) ? parsed.motif : fallbackMotif;
+      } else {
+        chosenTheme = isReadableTheme(theme) ? theme : fallbackTheme;
+        chosenMotif = motif ?? fallbackMotif;
+      }
       const projects = parsed.projects.slice(0, 6).map((p, i) => ({
         title: String(p.title ?? `Project ${i + 1}`),
         role: String(p.role ?? craft),
@@ -276,5 +290,5 @@ export async function generateSite({ name, craft, prompt, theme, motif, stylePre
   if (provider && hasKey) throw new Error(`Unsupported LLM provider: ${provider}`);
   const fb = localFallback(prompt, { name, craft }, stylePreference);
   const fbFallback = styleForCraft(craft);
-  return { site: { theme: theme ?? fbFallback.theme, motif: motif ?? fbFallback.motif, ...fb.site }, projects: fb.projects, usage: fb.usage };
+  return { site: { theme: theme ?? fbFallback?.theme ?? FALLBACK_THEMES.paper, motif: motif ?? fbFallback?.motif ?? 'cercles', ...fb.site }, projects: fb.projects, usage: fb.usage };
 }

@@ -7,8 +7,8 @@ test('craft fallback maps trades to a fresh visual identity', () => {
   assert.deepEqual(styleForCraft('Sound designer'), { theme: FALLBACK_THEMES.studio, motif: 'onde' });
   assert.deepEqual(styleForCraft('Géologue'), { theme: FALLBACK_THEMES.forest, motif: 'topo' });
   assert.deepEqual(styleForCraft('Céramiste'), { theme: FALLBACK_THEMES.atelier, motif: 'botanique' });
-  assert.deepEqual(styleForCraft('Illustratrice jeunesse'), { theme: FALLBACK_THEMES.paper, motif: 'cercles' });
-  assert.deepEqual(styleForCraft('Comptable'), { theme: FALLBACK_THEMES.paper, motif: 'cercles' });
+  assert.deepEqual(styleForCraft('Illustratrice jeunesse'), null);
+  assert.equal(styleForCraft('Comptable'), null);
 });
 
 test('fallback themes are complete and readable', () => {
