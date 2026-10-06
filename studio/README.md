@@ -48,6 +48,7 @@ webhook or real credit purchases are implemented yet. Credits belong to the acco
 - Deux rôles OpenRouter distincts : évaluateur factuel puis interviewer. Six messages créateur maximum et budget cumulé de 0,02 € par compte ; compteurs conservés même si le brouillon est supprimé.
 - Le navigateur convertit les JPG/PNG/WebP en WebP q70, côté long 680 px ; l'original n'est pas envoyé. Le serveur vérifie WebP/dimensions, garde le WebP privé et le publie seulement si le créateur l'a confirmé.
 - Le profil structuré et les projets sont confirmés avant le build. Le template affiche expériences et publications ; éditorial sans cartes par défaut, galerie seulement avec plusieurs images confirmées.
+- Sur le compte opérateur déjà en ligne, **« Préparer une nouvelle version »** démarre le rebrief de test. Une allowance interne à usage unique permet de valider la V1 sans Stripe ; l'ancien build reste public jusqu'à la bascule atomique.
 
 ## Encore à construire
 

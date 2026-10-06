@@ -52,8 +52,9 @@ Le bouton de création n'est activé que si le brief confirme explicitement :
 - nom affiché ou pseudo ;
 - activité/métier en mots compréhensibles ;
 - objectif ou audience principale ;
-   - au moins une expérience/réalisation, **ou** l'absence de projet à présenter ;
-   - une réponse à la question « articles, interviews ou publications à montrer ? » (les publications elles-mêmes restent facultatives) ;
+- au moins une expérience/réalisation, **ou** l'absence de projet à présenter ;
+- une réponse à la question « articles, interviews ou publications à montrer ? »
+  (les publications elles-mêmes restent facultatives) ;
 - une direction visuelle choisie, ou l'autorisation de proposer librement ;
 - choix de publication explicite pour chaque image déposée.
 
@@ -79,6 +80,11 @@ présente plutôt « Il me manque encore… » avec une phrase concrète.
   email opérateur de refaire un brief une fois après sa V1 offerte. Le site déjà
   publié reste en ligne pendant la conversation et le build ; il n'est remplacé
   qu'après succès. « Garder mon site actuel » annule sans le toucher.
+- Test en production : ouvrir une session par Magic Link, cliquer **« Préparer
+  une nouvelle version »** dans l'espace du portfolio actif, répondre au brief,
+  relire les images/le résumé, puis confirmer. Le public garde l'ancienne page
+  pendant tout ce temps ; ne pas commencer une autre session si l'allowance QA a
+  déjà été consommée.
 - Historique transmis tronqué et borné ; pas de boucle autonome, d'outil externe,
   de scraping LinkedIn ni d'exécution de code.
 - Les appels de brief et la génération V1 sont deux postes mesurés séparément.
