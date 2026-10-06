@@ -95,7 +95,7 @@ is supplied, propose a specific visual direction based on craft and projects, no
 CRITICAL — create a FRESH color theme for THIS craft on the spot (never reuse a default):
 every hex must be a 6-digit color like "#2f7d3a". Text must stay readable: ink on paper and
 brand on paper need strong contrast. Examples of fitting directions (adapt, don't copy):
-butcher → near-white background + parsley green accent, minimal color; sound designer →
+butcher/charcutier → near-white background (paper "#faf9f5", surface "#ffffff", ink "#1d201c") with parsley green accent (brand "#2f7d3a", brandStrong "#1f5c28"), minimal color elsewhere, motif "grille"; sound designer →
 warm dark background + amber accent; geologist → deep green tones + topographic motif;
 ceramist → warm terracotta tones. Pick the motif that fits the craft.`;
 
