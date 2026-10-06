@@ -67,7 +67,7 @@ Positionnement : pas un concurrent de Framer/Webflow — un **« flash »** : un
 | F7 | Domaine client | oui | Le client garde son domaine et son registrar ; guide DNS, vérification de propriété/résolution, routage et HTTPS auto ; aucun achat ou transfert |
 | F8 | Blog technique/SEO | oui | Astro, 1 article/sem au début, FR+EN |
 | F9 | Assistant LinkedIn éditorial | M2 | repurposing de blog/portfolios ; brouillons relus et publiés manuellement, aucune campagne de DM automatique |
-| F10 | i18n sites générés | partiel | FR/EN comme earlyreflect (`/fr/`), autres langues M3 |
+| F10 | i18n sites générés | FR+EN auto | Toujours bilingue, sans choix de langue ; toute langue supplémentaire = job facturé en crédits |
 | F11 | Multi-templates | non (M2) | 3 templates M2 |
 | F12 | Version unique en ligne | oui | Pas de versions multiples ni de rollback utilisateur : chaque génération remplace la version live ; un build raté ne remplace jamais la version en ligne |
 | F13 | Message de lancement LinkedIn | M1 | Bouton opérateur « Générer un message de soutien à Folioflash » ; brouillon FR/EN éditable, à copier/coller manuellement |
