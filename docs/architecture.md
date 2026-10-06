@@ -29,17 +29,20 @@ template-folio/
 └── scripts/                 # audit, gen-og, gen-llms ; optimisation au Studio
 ```
 
-Le LLM fournit un objet structuré validé par le serveur : profil, projets FR/EN,
-palette, typographies/layout issus d'options autorisées. Si le brief ne précise pas
-de style, il propose une direction adaptée au métier et aux projets. Il ne produit
-jamais de code arbitraire.
+Le générateur reçoit un brief structuré **confirmé par le créateur**, puis fournit
+un objet validé par le serveur : profil, projets FR/EN, palette, motif et type de
+composition (`editorial` ou `gallery`). Une mise en page éditoriale sans cartes est
+le repli ; une galerie est choisie seulement si les projets distincts s'y prêtent.
+Le LLM ne produit jamais de code arbitraire.
 
 ## 3. Pipeline de génération et publication
 
 ```
-Studio → prompt + assets temporaires
-  → validation + optimisation d'images (WebP, redimensionnement, EXIF supprimé)
-  → LLM → contenu et style structurés
+Studio → un fil texte/voix/coller/dépôt d'images
+  → évaluateur de complétude → une question ciblée par l'interviewer
+  → résumé du brief, choix explicite des images publiables, confirmation du créateur
+  → WebP optimisés (680 px, EXIF absent) + profil structuré confirmé
+  → LLM → contenu et direction visuelle/layout structurés
   → build Astro limité en ressources, dans une file de jobs
   → validation des pages/liens
   → publication atomique : garder l'ancien build si le nouveau échoue
@@ -47,6 +50,9 @@ Studio → prompt + assets temporaires
 ```
 
 - Preview temporaire dans le Studio ; pas de sous-domaine Folioflash remis au client.
+- Aucun formulaire séparé de création : l'interviewer est borné à 6 messages créateur et 0,02 € d'appels provider par compte ; tours, tokens et coût réel sont persistés dans SQLite.
+- Le brief comprend deux rôles IA séparés : interviewer (formule la prochaine question) et évaluateur (met à jour `briefProfile`, manques et readiness). Un clic explicite déclenche ensuite le job de génération gratuit.
+- Les images sources ne quittent pas le navigateur : Canvas les réduit/réencode en WebP q70 avant l'upload. Seuls les fichiers validés et optimisés sont conservés, privés par compte, puis copiés au build uniquement après consentement.
 - DNS reste chez le client : A/AAAA vers le serveur et éventuellement CNAME `www`.
 - Après vérification DNS, provisionner automatiquement routage et certificat HTTPS.
 - Garder chaque dernière release intacte ; publier par bascule atomique et conserver
@@ -76,8 +82,9 @@ création/renouvellement de certificats, suppression de hosts et récupération 
 - Première génération réussie offerte une fois par compte ; suppression/recréation du portfolio ne réinitialise pas ce droit. Toutes les générations/modifications suivantes exigent des crédits.
 - Worker de build isolé et borné ; stockage d'images d'abord local avec quota et backup.
 - Pipeline upload : contrôles MIME et signature fichier, dimensions/poids, conversion
-  WebP, variantes responsive, EXIF supprimés ; originaux traités en zone temporaire,
-  puis supprimés. SVG non fiable rejeté en V1.
+  WebP, variantes responsive, EXIF supprimés ; les originaux ne sont pas téléversés
+  depuis le navigateur. SVG non fiable rejeté en V1.
+- `briefProfile` versionné, messages et compteur de tours dans les données du site ; coût de brief et tours cumulés aussi au compte afin que suppression/recréation ne réinitialise pas le budget.
 - Stripe Checkout + webhooks signés et idempotents ; journal de transactions et
   consommation IA traçable par job.
 - Auth temporaire Basic Auth remplacée par authentification produit avant ouverture.

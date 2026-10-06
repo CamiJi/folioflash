@@ -69,6 +69,18 @@ async function confirmLink(baseUrl, token) {
   return cookie.split(';')[0];
 }
 
+function tinyWebpDataUrl() {
+  const image = Buffer.alloc(30);
+  image.write('RIFF', 0, 'ascii');
+  image.writeUInt32LE(22, 4);
+  image.write('WEBP', 8, 'ascii');
+  image.write('VP8X', 12, 'ascii');
+  image.writeUInt32LE(10, 16);
+  image.writeUIntLE(0, 24, 3);
+  image.writeUIntLE(0, 27, 3);
+  return `data:image/webp;base64,${image.toString('base64')}`;
+}
+
 test('magic links create isolated accounts, one-time sessions and logout', async (t) => {
   const testDir = mkdtempSync(path.join(TMP_ROOT, 'folioflash-auth-'));
   const captureFile = path.join(testDir, 'email.json');
@@ -141,6 +153,9 @@ test('magic links create isolated accounts, one-time sessions and logout', async
   const studioHtml = await studioPage.text();
   assert.match(studioHtml, /one@example.test/);
   assert.doesNotMatch(studioHtml, /Mes sites/);
+  assert.match(studioHtml, /id="brief-input"/);
+  assert.match(studioHtml, /id="image-input"/);
+  assert.match(studioHtml, /id="brief-mic"/);
   assert.equal((await fetch(`${baseUrl}/api/auth/verify`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -175,6 +190,56 @@ test('magic links create isolated accounts, one-time sessions and logout', async
   assert.deepEqual(await isolatedSites.json(), []);
   const privateSite = await fetch(`${baseUrl}/api/sites/${site.id}`, { headers: { cookie: secondCookie } });
   assert.equal(privateSite.status, 404);
+
+  const draftResponse = await fetch(`${baseUrl}/api/sites`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: secondCookie },
+    body: JSON.stringify({}),
+  });
+  assert.equal(draftResponse.status, 201);
+  const draft = await draftResponse.json();
+  assert.equal(draft.status, 'draft');
+  const duplicateDraft = await fetch(`${baseUrl}/api/sites`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: secondCookie },
+    body: JSON.stringify({}),
+  });
+  assert.equal(duplicateDraft.status, 409, 'the conversation draft reserves the account portfolio slot');
+  const initialBrief = await (await fetch(`${baseUrl}/api/sites/${draft.id}/brief`, { headers: { cookie: secondCookie } })).json();
+  assert.equal(initialBrief.messages.length, 1);
+  assert.equal(initialBrief.limits.maxTurns, 6);
+
+  const uploaded = await fetch(`${baseUrl}/api/sites/${draft.id}/assets`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: secondCookie },
+    body: JSON.stringify({ name: 'mon-travail.png', dataUrl: tinyWebpDataUrl(), width: 1, height: 1 }),
+  });
+  assert.equal(uploaded.status, 201);
+  const asset = await uploaded.json();
+  assert.match(asset.id, /^[a-f0-9-]{36}$/i);
+  assert.equal((await fetch(`${baseUrl}/api/sites/${draft.id}/assets/${asset.id}`, { headers: { cookie: secondCookie } })).status, 200);
+  assert.equal((await fetch(`${baseUrl}/api/sites/${draft.id}/assets/${asset.id}`, { headers: { cookie: firstCookie } })).status, 404);
+  const briefing = await fetch(`${baseUrl}/api/sites/${draft.id}/brief`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: secondCookie },
+    body: JSON.stringify({ message: 'Je m’appelle Zoé et je suis photographe.', assetIds: [asset.id] }),
+  });
+  assert.equal(briefing.status, 200);
+  const briefState = await briefing.json();
+  assert.equal(briefState.turn, 1);
+  assert.equal(briefState.ready, false, 'the evaluator does not infer missing facts from the uploaded image');
+  assert.ok(briefState.missing.includes('images'), 'publication consent is required for uploaded images');
+  assert.equal((await fetch(`${baseUrl}/api/sites/${draft.id}`, { headers: { cookie: firstCookie } })).status, 404);
+  assert.equal((await fetch(`${baseUrl}/api/sites/${draft.id}`, { headers: { cookie: secondCookie } })).status, 200);
+  await fetch(`${baseUrl}/api/sites/${draft.id}`, { method: 'DELETE', headers: { cookie: secondCookie } });
+  const replacementDraft = await fetch(`${baseUrl}/api/sites`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: secondCookie },
+    body: JSON.stringify({}),
+  });
+  const replacement = await replacementDraft.json();
+  const resumedBrief = await (await fetch(`${baseUrl}/api/sites/${replacement.id}/brief`, { headers: { cookie: secondCookie } })).json();
+  assert.equal(resumedBrief.turn, 1, 'deleting a draft does not reset the account-wide conversation limit');
 
   const ownSites = await fetch(`${baseUrl}/api/sites`, { headers: { cookie: firstCookie } });
   assert.equal((await ownSites.json()).length, 1);
@@ -265,5 +330,8 @@ test('public landing is bilingual while the operator Studio keeps its temporary 
     headers: { authorization: `Basic ${Buffer.from('operator-test:local-test-password').toString('base64')}` },
   });
   assert.equal(studio.status, 200);
-  assert.match(await studio.text(), /Créer un portfolio/);
+  const studioHtml = await studio.text();
+  assert.match(studioHtml, /On commence par parler de ton travail/);
+  assert.match(studioHtml, /id="brief-input"/);
+  assert.doesNotMatch(studioHtml, /Créer un portfolio/);
 });

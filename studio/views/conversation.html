@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0B0B0C">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <title>Studio — Folioflash</title>
+  @@BRAND_STYLE@@
+  <style>
+    .studio-shell{width:min(100% - 40px,900px);margin:0 auto;padding-bottom:72px}
+    .topbar{height:76px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+    .brand{display:inline-flex;align-items:center;gap:12px;color:var(--cream);font-weight:600;text-decoration:none;letter-spacing:.02em}
+    .brand-mark{width:13px;height:18px;background:var(--gold);clip-path:polygon(58% 0,100% 0,72% 42%,100% 42%,30% 100%,46% 55%,14% 55%)}
+    .brand small{display:block;color:var(--muted);font-size:11px;font-weight:400;letter-spacing:.12em;text-transform:uppercase}
+    .account{display:flex;align-items:center;gap:18px;color:var(--muted);font-size:13px}
+    .logout{border:1px solid var(--line);border-radius:4px;background:transparent;color:var(--cream);padding:8px 12px}
+    .conversation-heading{padding:52px 0 25px}
+    .conversation-heading h1{max-width:760px;margin:0;font:500 clamp(38px,6vw,68px)/1.03 var(--serif);letter-spacing:-.035em}
+    .conversation-heading p{max-width:640px;color:var(--muted);font-size:18px;line-height:1.55;margin:17px 0 0}
+    .conversation-panel{padding:0 0 40px}
+    .messages{display:grid;gap:26px;padding:22px 0 18px}
+    .message{max-width:780px;font-size:clamp(18px,2.2vw,22px);line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+    .message--assistant{border-left:2px solid var(--gold);padding:1px 0 2px 21px;color:var(--cream)}
+    .message--user{justify-self:end;max-width:min(90%,680px);padding:15px 19px;background:#f5f3ef;color:#171717;border-radius:14px 14px 3px 14px}
+    .message-attachments{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+    .message-attachments img{width:82px;height:64px;object-fit:cover;border-radius:3px}
+    .conversation-progress{display:flex;justify-content:space-between;gap:18px;padding:17px 0;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+    .composer{border:1px solid #4b4842;background:linear-gradient(150deg,#191a1b,#101112);padding:17px 18px 13px;transition:border-color .15s ease,background-color .15s ease}
+    .composer:focus-within{border-color:var(--gold)}
+    .composer.is-dragging{border-color:var(--gold);background:#252116}
+    .composer textarea{width:100%;min-height:90px;max-height:240px;resize:vertical;background:transparent;border:0;outline:0;color:var(--cream);font:400 19px/1.5 var(--sans)}
+    .composer textarea::placeholder{color:#aaa49a}
+    .composer-tools{display:flex;align-items:center;gap:12px;border-top:1px solid var(--line);padding-top:12px}
+    .compose-button{display:grid;place-items:center;width:42px;height:42px;border:1px solid #4b4842;background:transparent;color:var(--cream);border-radius:50%;font-size:24px;line-height:1}
+    .compose-button svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+    .compose-button:hover,.compose-button:focus-visible{border-color:var(--gold);color:var(--gold)}
+    .compose-button:disabled{opacity:.5;cursor:wait}
+    .send-button{margin-left:auto;background:var(--gold);border-color:var(--gold);color:#15110a;font-size:27px;font-weight:500}
+    .send-button:hover,.send-button:focus-visible{background:#e0c28b;color:#15110a}
+    .composer-note{color:var(--muted);font-size:12px}
+    .privacy-note{max-width:800px;margin:10px 0;line-height:1.45}
+    .attachment-strip{display:flex;flex-wrap:wrap;gap:10px;padding:0 0 10px}
+    .attachment{position:relative;width:88px;height:76px}
+    .attachment img{width:100%;height:100%;object-fit:cover;border:1px solid var(--line);border-radius:3px}
+    .attachment button{position:absolute;top:-7px;right:-7px;width:23px;height:23px;border:0;border-radius:50%;background:var(--cream);color:#111;font-size:17px;line-height:1}
+    .brief-status{min-height:28px;margin:10px 0 0;color:var(--muted);font-size:14px}
+    .brief-summary{margin:20px 0 0;padding:19px 21px;border-left:2px solid var(--gold);background:#171819}
+    .brief-summary h2{font:500 26px/1.2 var(--serif);margin:0 0 10px}
+    .brief-summary p{font-size:17px;line-height:1.6;margin:0;white-space:pre-wrap}
+    .create-site-button,.primary{min-height:50px;border:0;background:var(--gold);color:#17130a;padding:0 19px;font-weight:700;font-size:15px}
+    .create-site-button{margin-top:18px}
+    .create-site-button:hover,.primary:hover{background:#e0c28b}
+    .site-status{display:flex;align-items:center;flex-wrap:wrap;gap:14px;padding:17px 0 21px;border-bottom:1px solid var(--line);color:var(--muted)}
+    .site-status strong{color:var(--cream);font:500 27px/1.2 var(--serif)}
+    .site-status a{margin-left:auto}
+    .edit-form{padding-top:18px}
+    .edit-form textarea{width:100%;min-height:120px;resize:vertical;background:#111213;border:1px solid #4b4842;color:var(--cream);padding:14px;font:400 19px/1.5 var(--sans)}
+    .edit-actions{display:flex;align-items:center;gap:10px;margin-top:11px}
+    .delete-site{margin-top:22px;border:1px solid var(--line);background:transparent;color:var(--muted);padding:9px 12px}
+    .delete-site:hover{border-color:#b77969;color:#f2c1b2}
+    .skip{position:absolute;left:-9999px;top:0;padding:12px;background:var(--cream);color:#111;z-index:5}
+    .skip:focus{left:10px}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    [hidden],.hidden{display:none!important}
+    :focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+    @media(max-width:650px){.studio-shell{width:min(100% - 28px,900px)}.topbar{height:66px}.account{gap:8px;font-size:11px}.account-email{max-width:135px;overflow:hidden;text-overflow:ellipsis}.conversation-heading{padding:39px 0 18px}.conversation-heading p{font-size:16px}.messages{gap:19px}.message{font-size:18px}.message--assistant{padding-left:15px}.message--user{max-width:94%}.composer{padding:13px 12px 10px}.composer textarea,.edit-form textarea{font-size:17px;min-height:100px}.compose-button{width:40px;height:40px}.composer-note{max-width:150px;line-height:1.35}.privacy-note{max-width:none;line-height:1.45}.conversation-progress{font-size:12px}.site-status strong{font-size:23px}.site-status a{margin-left:0}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Aller à la conversation</a>
+  <div class="studio-shell">
+    <header class="topbar">
+      <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span><span>Folioflash<small>Studio portfolio</small></span></a>
+      <div class="account"><span class="account-email">@@EMAIL@@</span><button id="logout" class="logout @@LOGOUT_CLASS@@" type="button">Déconnexion</button></div>
+    </header>
+    <main id="main">
+      <section class="conversation-heading" aria-labelledby="page-title">
+        <h1 id="page-title">On commence par parler de ton travail.</h1>
+        <p id="page-description">Raconte-moi ce que tu fais, même en vrac. Je vais t’aider à trouver les bons éléments avant de créer ton portfolio.</p>
+      </section>
+
+      <section id="brief-panel" class="conversation-panel" aria-label="Brief de création">
+        <div id="brief-messages" class="messages" role="log" aria-live="polite" aria-relevant="additions text">
+          <article class="message message--assistant">Salut ! Raconte-moi ce que tu fais, même en vrac. Tu peux commencer par ton nom ou ton pseudo, coller ton LinkedIn/CV ou dicter.</article>
+        </div>
+        <div class="conversation-progress"><span id="turn-count">Jusqu’à 6 réponses pour préparer le brief.</span><span>Ta première génération est offerte.</span></div>
+        <form id="brief-form">
+          <div id="brief-composer" class="composer">
+            <label class="sr-only" for="brief-input">Ton message pour Folioflash</label>
+            <div id="drop-copy" class="composer-note" hidden>Dépose tes images ici.</div>
+            <textarea id="brief-input" name="message" rows="2" maxlength="4000" placeholder="Écris ici. Tu peux raconter ton activité, coller un texte ou répondre à ma question…"></textarea>
+            <div id="brief-attachments" class="attachment-strip" aria-label="Images jointes"></div>
+            <div class="composer-tools">
+              <label for="image-input" class="compose-button" aria-label="Ajouter des images" title="Ajouter des images"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="8.5" cy="9" r="1.5"></circle><path d="m21 15-5-5L5 20"></path></svg></label>
+              <input id="image-input" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+              <button id="brief-mic" class="compose-button" type="button" aria-label="Dicter un message" title="Dicter"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8"></path></svg></button>
+              <span class="composer-note">Tu peux aussi déposer tes photos ici.</span>
+              <button id="brief-send" class="compose-button send-button" type="submit" aria-label="Envoyer le message" title="Envoyer">+</button>
+            </div>
+          </div>
+          <p class="composer-note privacy-note">Photos optimisées et analysées par l’IA ; publiées seulement avec ton accord.</p>
+          <p id="brief-status" class="brief-status" role="status" aria-live="polite"></p>
+        </form>
+        <section id="brief-ready" class="brief-summary" hidden aria-labelledby="brief-ready-title">
+          <h2 id="brief-ready-title">Le brief est prêt.</h2>
+          <p id="brief-summary-text"></p>
+          <p id="brief-image-consent" class="composer-note" hidden>Les images listées dans le résumé apparaîtront sur ton site.</p>
+          <button id="generate-site" class="create-site-button" type="button">Créer mon portfolio</button>
+        </section>
+      </section>
+
+      <section id="site-panel" class="conversation-panel" hidden aria-label="Modifier mon portfolio">
+        <div class="site-status"><strong id="site-name"></strong><span id="site-credit-count"></span><a id="site-view" href="#" target="_blank" rel="noopener">Voir mon portfolio ↗</a></div>
+        <div id="edit-messages" class="messages" role="log" aria-live="polite"><article class="message message--assistant">Ton portfolio est en ligne. Dis-moi ce que tu veux changer, je m’occupe du reste.</article></div>
+        <form id="edit-form" class="edit-form">
+          <label class="sr-only" for="edit-input">Que veux-tu changer ?</label>
+          <textarea id="edit-input" maxlength="2000" placeholder="Décris le changement que tu veux. Tu peux écrire ou dicter…"></textarea>
+              <div class="edit-actions"><button id="edit-mic" class="compose-button" type="button" aria-label="Dicter un changement"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8"></path></svg></button><span class="composer-note">Les changements utilisent des crédits.</span><button id="edit-send" class="compose-button send-button" type="submit" aria-label="Envoyer le changement">+</button></div>
+          <p id="edit-status" class="brief-status" role="status" aria-live="polite"></p>
+        </form>
+        <button id="delete-site" class="delete-site" type="button">Supprimer mon portfolio</button>
+      </section>
+    </main>
+  </div>
+  <script src="/conversation.js" defer></script>
+</body>
+</html>

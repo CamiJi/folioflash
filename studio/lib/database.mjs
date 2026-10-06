@@ -27,7 +27,9 @@ export function openStore(dataDir) {
     CREATE TABLE IF NOT EXISTS users (
       email TEXT PRIMARY KEY,
       created_at TEXT NOT NULL,
-      first_generation_used INTEGER NOT NULL DEFAULT 0
+      first_generation_used INTEGER NOT NULL DEFAULT 0,
+      brief_budget_used_eur REAL NOT NULL DEFAULT 0,
+      brief_turns_used INTEGER NOT NULL DEFAULT 0
     );
     CREATE TABLE IF NOT EXISTS sites (
       id TEXT PRIMARY KEY,
@@ -83,16 +85,22 @@ export function openStore(dataDir) {
     );
   `);
 
+  const userColumns = new Set(db.prepare('PRAGMA table_info(users)').all().map((column) => column.name));
+  if (!userColumns.has('brief_budget_used_eur')) db.exec('ALTER TABLE users ADD COLUMN brief_budget_used_eur REAL NOT NULL DEFAULT 0');
+  if (!userColumns.has('brief_turns_used')) db.exec('ALTER TABLE users ADD COLUMN brief_turns_used INTEGER NOT NULL DEFAULT 0');
+
   const getMetadata = db.prepare('SELECT value FROM metadata WHERE key = ?');
   const setMetadata = db.prepare('INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)');
   migrateJsonPilotState(db, dataDir, getMetadata, setMetadata);
 
   function loadState() {
-    const users = new Map(db.prepare('SELECT email, created_at, first_generation_used FROM users')
+    const users = new Map(db.prepare('SELECT email, created_at, first_generation_used, brief_budget_used_eur, brief_turns_used FROM users')
       .all().map((row) => [row.email, {
         email: row.email,
         createdAt: row.created_at,
         firstGenerationUsed: Boolean(row.first_generation_used),
+        briefBudgetUsedEur: row.brief_budget_used_eur,
+        briefTurnsUsed: row.brief_turns_used,
       }]));
     const sites = new Map(db.prepare('SELECT id, data FROM sites')
       .all().map((row) => [row.id, parseJson(row.data)]));
@@ -106,8 +114,8 @@ export function openStore(dataDir) {
   }
 
   function saveState(state) {
-    const persist = db.prepare(`INSERT INTO users (email, created_at, first_generation_used) VALUES (?, ?, ?)
-      ON CONFLICT(email) DO UPDATE SET created_at = excluded.created_at, first_generation_used = excluded.first_generation_used`);
+    const persist = db.prepare(`INSERT INTO users (email, created_at, first_generation_used, brief_budget_used_eur, brief_turns_used) VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(email) DO UPDATE SET created_at = excluded.created_at, first_generation_used = excluded.first_generation_used, brief_budget_used_eur = excluded.brief_budget_used_eur, brief_turns_used = excluded.brief_turns_used`);
     const insertSite = db.prepare(`INSERT INTO sites (id, owner_email, slug, legacy, data) VALUES (?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET owner_email = excluded.owner_email, slug = excluded.slug, legacy = excluded.legacy, data = excluded.data`);
     const insertCredits = db.prepare(`INSERT INTO credits (account_email, balance) VALUES (?, ?)
@@ -123,6 +131,8 @@ export function openStore(dataDir) {
           email: site.ownerEmail,
           createdAt: new Date().toISOString(),
           firstGenerationUsed: site.status === 'live',
+          briefBudgetUsedEur: 0,
+          briefTurnsUsed: 0,
         });
       }
     }
@@ -130,7 +140,7 @@ export function openStore(dataDir) {
     db.exec('BEGIN IMMEDIATE');
     try {
       for (const [email, user] of accounts) {
-        persist.run(email, user.createdAt ?? new Date().toISOString(), Number(Boolean(user.firstGenerationUsed)));
+        persist.run(email, user.createdAt ?? new Date().toISOString(), Number(Boolean(user.firstGenerationUsed)), Number(user.briefBudgetUsedEur ?? 0), Number(user.briefTurnsUsed ?? 0));
       }
       for (const site of state.sites.values()) {
         insertSite.run(site.id, site.ownerEmail || null, site.slug || site.id, Number(Boolean(site.legacy)), JSON.stringify(site));
@@ -213,9 +223,9 @@ function migrateJsonPilotState(db, dataDir, getMetadata, setMetadata) {
 
   db.exec('BEGIN IMMEDIATE');
   try {
-    const insertUser = db.prepare('INSERT OR IGNORE INTO users (email, created_at, first_generation_used) VALUES (?, ?, ?)');
+    const insertUser = db.prepare('INSERT OR IGNORE INTO users (email, created_at, first_generation_used, brief_budget_used_eur, brief_turns_used) VALUES (?, ?, ?, ?, ?)');
     for (const [email, user] of users) {
-      insertUser.run(email, user.createdAt ?? new Date().toISOString(), Number(Boolean(user.firstGenerationUsed || firstGenerationOwners.has(email))));
+      insertUser.run(email, user.createdAt ?? new Date().toISOString(), Number(Boolean(user.firstGenerationUsed || firstGenerationOwners.has(email))), Number(user.briefBudgetUsedEur ?? 0), Number(user.briefTurnsUsed ?? 0));
     }
     const insertSite = db.prepare('INSERT OR IGNORE INTO sites (id, owner_email, slug, legacy, data) VALUES (?, ?, ?, ?, ?)');
     for (const site of sites.values()) {

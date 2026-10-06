@@ -3,10 +3,18 @@
 ## Direction
 
 Portfolio éditorial de créatif : typographie expressive, composition asymétrique,
-grandes marges, couleurs de projet et navigation discrète. Le template s'adapte
-aux projets sans imposer des cartes SaaS génériques. Tant que le client n'a pas
-fourni de visuels, les couvertures typographiques sont décoratives et ne prétendent
-pas être ses œuvres.
+grandes marges, couleurs de projet et navigation discrète. Le template choisit une
+composition adaptée aux contenus ; les cartes ne sont jamais le défaut.
+
+## Composition portfolio (brief conversationnel)
+
+- `projectPresentation: "editorial"` donne une liste typographique, sans cadres ni
+  illustrations CSS inventées ; une photo confirmée peut illustrer un projet.
+- `projectPresentation: "gallery"` est réservé à plusieurs projets distincts qui
+  se découvrent mieux visuellement. Le créateur relit les images sélectionnées
+  avant création.
+- Le générateur ne peut associer qu'un asset ID optimisé existant, jamais un
+  chemin de fichier produit par le LLM.
 
 ## Stack et règles
 

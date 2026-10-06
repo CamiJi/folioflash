@@ -1,4 +1,4 @@
-# Studio — run + API contract (M1)
+# Studio — conversation-first portfolio brief (M1)
 
 ```bash
 nvm use 22            # Nano: Node ≥ 22.19 requis (SQLite + template dependencies)
@@ -26,8 +26,12 @@ le fournisseur d'email n'est pas configuré, le code reste en mode Basic ; `/dem
 | GET/POST | `/auth/verify` | page de confirmation puis échange du lien à usage unique contre session |
 | POST | `/api/auth/logout` | révoque la session |
 | GET | `/api/health` | `{ ok }` |
-| POST | `/api/sites` | crée un site (`draft`), au plus un site actif par compte/email |
-| POST | `/api/sites/:id/v1` | première génération **gratuite une seule fois par compte** ; suivantes à crédit |
+| GET | `/studio` | conversation de brief (nouveau portfolio) ou prompt d'édition (portfolio existant) |
+| POST | `/api/sites` | crée un brouillon vide pour le fil de conversation ; un portfolio actif par compte/email |
+| POST | `/api/sites/:id/assets` | WebP optimisé ≤ 700 Ko ; 8 fichiers maximum, accès privé au compte |
+| GET/POST | `/api/sites/:id/brief` | état du fil / message → interviewer + évaluateur, readiness, résumé, coût et compteur de tours |
+| GET | `/api/sites/:id/assets/:assetId` | lit une image optimisée privée appartenant au portfolio |
+| POST | `/api/sites/:id/v1` | brief confirmé → première génération **gratuite une fois par compte** |
 | POST | `/api/sites/:id/edit` | `{ prompt }` → **1 crédit**, rebuild + redéploiement immédiat |
 | GET | `/api/sites/:id` | site + crédits |
 
@@ -37,19 +41,24 @@ le fournisseur d'email n'est pas configuré, le code reste en mode Basic ; `/dem
 `payments` and `ledger_entries` tables are present for the upcoming Stripe work; no checkout,
 webhook or real credit purchases are implemented yet. Credits belong to the account, not the site.
 
-## Not production-ready yet
+## Brief IA et images
 
-- Le lien magique (15 minutes, usage unique), les sessions HttpOnly/Secure/SameSite et l'isolation des sites par email sont implémentés et testés ; réception + ouverture de session confirmées par Camille le 2026-10-06.
-- SQLite impose un portfolio actif par compte/email ; si l'état pilote contient plusieurs sites pour un email, le premier reste actif et les autres sont conservés en archives publiques non modifiables. La suppression ne réinitialise pas le droit à la première génération gratuite.
-- Upload UI and server-side asset optimization are not implemented yet.
-- No Stripe, DNS/domain onboarding, multi-site host routing or automated certificate provisioning yet.
-- No customer receives or delegates a Folioflash subdomain. They will connect their own domain.
+- Deux rôles OpenRouter distincts : évaluateur factuel puis interviewer. Six messages créateur maximum et budget cumulé de 0,02 € par compte ; compteurs conservés même si le brouillon est supprimé.
+- Le navigateur convertit les JPG/PNG/WebP en WebP q70, côté long 680 px ; l'original n'est pas envoyé. Le serveur vérifie WebP/dimensions, garde le WebP privé et le publie seulement si le créateur l'a confirmé.
+- Le profil structuré et les projets sont confirmés avant le build. Le template affiche expériences et publications ; éditorial sans cartes par défaut, galerie seulement avec plusieurs images confirmées.
+
+## Encore à construire
+
+- Mesurer les coûts du brief et de la génération réelle sur des pilotes ; le mode sans clé reste un fallback de développement simple, pas l'agent de production.
+- Stripe test, Checkout, webhook/idempotence et portefeuille réel ; aucun achat de crédit n'existe encore.
+- Routage de domaines clients, provisionnement TLS automatisé, test de restauration et capacité.
+- Pas de sous-domaine Folioflash remis au client : chacun connectera son domaine.
 
 ## Next (M1 order)
 
-1. Déployer le rebrand Studio Nestor ; la vraie vitrine marketing reste à réaliser.
-2. Retirer le Basic Auth provisoire en production (le lien et la session ont été confirmés) ; smoke-tester aussi la déconnexion.
-3. SQLite est intégré ; vérifier la migration des données réelles du nano et la restauration avant Stripe.
-4. Upload sécurisé et optimisation WebP/variantes/EXIF ; supprimer les originaux.
-5. Routage multi-domaines + TLS automatisé, Stripe test, limites et sauvegardes.
-6. Pilotes, tests de restauration, charge et coût avant ouverture publique.
+1. Smoke-tester la déconnexion Magic Link en production.
+2. Valider trois vrais briefs ; contrôler les faits, les questions, le coût ≤ 0,02 € et les layouts sans cartes inutiles.
+3. Auditer au moins trois sites : texte seul, expériences/articles, projets avec photos.
+4. Tester sauvegarde/restauration SQLite + images optimisées ; fixer le plafond de pilotes.
+5. Implémenter Stripe test : recharge 5 €, webhooks idempotents, ledger et remboursement en échec.
+6. Pilotes de bout en bout, coûts réels et charge avant ouverture publique.

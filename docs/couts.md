@@ -63,7 +63,9 @@ Revoir les tarifs après 50 générations/modifications et test de charge/restau
 
 ## 5. À mesurer en M1
 
-Logger par job/site : tokens, modèle, coût fournisseur, frais Stripe affectés aux
-recharges, durée, ressources build, octets entrants/sortants, taille des assets après
-optimisation, stockage total, trafic, sauvegardes et coût support. Calculer le coût
+Logger par brief et génération : tokens, modèle, coût interviewer + évaluateur,
+frais Stripe affectés aux recharges, durée, ressources build, octets entrants/sortants,
+taille des assets après optimisation, stockage total, trafic, sauvegardes et coût support.
+Le brief est plafonné à 0,02 € par compte et inclus dans l'enveloppe de la première V1
+gratuite. Calculer le coût
 par site actif avant de fixer le prix et le pourcentage de marge.

@@ -9,8 +9,8 @@
  * TODO(M1): Stripe webhooks, uploads/optimization, customer-domain multi-site routing.
  */
 import { createServer } from 'node:http';
-import { createHmac, timingSafeEqual } from 'node:crypto';
-import { readFileSync, rmSync, existsSync, statSync } from 'node:fs';
+import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
+import { mkdirSync, readFileSync, writeFileSync, rmSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import nodemailer from 'nodemailer';
@@ -18,6 +18,7 @@ import { runJob } from './lib/pipeline.mjs';
 import { createOpaqueToken, digestToken, isValidEmail, normalizeEmail, parseCookies } from './lib/auth.mjs';
 import { isDisposableEmail } from './lib/email-policy.mjs';
 import { openStore } from './lib/database.mjs';
+import { advanceBrief, BRIEF_AGENT_LIMITS, getBriefTurnLimit } from './lib/brief-agent.mjs';
 
 const PORT = Number(process.env.PORT ?? 4322);
 const AUTH_MODE = (process.env.AUTH_MODE ?? 'basic').toLowerCase();
@@ -84,11 +85,26 @@ function saveState() {
   store.saveState({ sites, credits, users, magicLinks, sessions });
 }
 
+let recoveredBriefWork = false;
+for (const site of sites.values()) {
+  if (site.briefBusy) {
+    site.briefBusy = false;
+    recoveredBriefWork = true;
+  }
+}
+if (recoveredBriefWork) saveState();
+
 function accountFor(email) {
   if (!email) return null;
   let account = users.get(email);
   if (!account) {
-    account = { email, createdAt: new Date().toISOString(), firstGenerationUsed: false };
+    account = {
+      email,
+      createdAt: new Date().toISOString(),
+      firstGenerationUsed: false,
+      briefBudgetUsedEur: 0,
+      briefTurnsUsed: 0,
+    };
     users.set(email, account);
   }
   return account;
@@ -220,19 +236,31 @@ function logJob(entry) {
   store.insertJob({ at: new Date().toISOString(), ...entry });
 }
 
-function readJson(req) {
+function readJson(req, maxBytes = 200_000) {
   return new Promise((resolve, reject) => {
     let body = '';
+    let bodyBytes = 0;
+    let settled = false;
     req.on('data', (c) => {
+      if (settled) return;
+      bodyBytes += c.length;
+      if (bodyBytes > maxBytes) {
+        settled = true;
+        reject(new Error('payload too large'));
+        return;
+      }
       body += c;
-      if (body.length > 200_000) reject(new Error('payload too large'));
     });
     req.on('end', () => {
+      if (settled) return;
       try {
         resolve(body ? JSON.parse(body) : {});
       } catch {
         reject(new Error('invalid JSON'));
       }
+    });
+    req.on('error', (error) => {
+      if (!settled) reject(error);
     });
   });
 }
@@ -274,19 +302,7 @@ function renderLanding(lang, isLoggedIn = false) {
   return isLoggedIn ? page.replaceAll('href="/login"', 'href="/studio"') : page;
 }
 
-const FORM = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0B0B0C"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><title>Studio — Folioflash</title>${BRAND_STYLE}</head><body><a class="skip" href="#main">Aller au contenu</a><div class="shell"><header class="topbar"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span><span>Folioflash<small>Studio portfolio</small></span></a><div class="account"><span>@@EMAIL@@</span><button id="logout" class="logout @@LOGOUT_CLASS@@" type="button">Déconnexion</button></div></header><main id="main"><section class="hero"><p class="eyebrow">Ton site, à ton image</p><h1>Un portfolio qui te ressemble.</h1><p>Décris ton univers. Si tu n’as pas d’idée de style, Folioflash en proposera une à partir de ton activité et de tes projets.</p></section><div class="workspace"><section class="panel" id="create-panel"><h2>Créer un portfolio</h2><p class="hint">3 étapes, 5 minutes. Ton site sera généré en français et en anglais, automatiquement.</p><form id="create-form"><div class="form-row"><div class="field"><label for="name">Étape 1 — Nom affiché</label><input id="name" name="name" autocomplete="name" required maxlength="100" placeholder="Léa Marceau"></div><div class="field"><label for="craft">Ton métier</label><input id="craft" name="craft" required maxlength="100" placeholder="Illustratrice jeunesse"></div></div><div class="field"><label for="public-email">Email de contact public <span>(facultatif)</span></label><input id="public-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="bonjour@tonsite.fr"></div><div class="field"><label for="style">Style souhaité <span>(facultatif)</span></label><input id="style" name="stylePreference" maxlength="160" placeholder="Ex. coloré et ludique, inspiré de la gouache"></div><div class="field"><label for="profile">Étape 2 — Colle ton LinkedIn <span>(recommandé)</span></label><textarea id="profile" name="profileText" rows="4" maxlength="8000" placeholder="Copie-colle ton résumé LinkedIn ou ton CV : postes, expériences, formations. Exemple : « 2021-2024 Designer produit chez Atelier Nord : refonte du site vitrine, +40 % de contacts… »"></textarea><p class="hint">Astuce : sur LinkedIn, Réglages → Confidentialité → « Obtenir une copie de tes données ». Tu reliras tout avant publication.</p></div><div class="field"><label for="prompt">Étape 3 — Raconte le reste avec tes mots</label><textarea id="prompt" name="prompt" required maxlength="5000" placeholder="Tes 2-3 projets dont tu es fier, ton style de travail, les clients que tu vises. Exemple : « J’ai réalisé l’identité du café Moiré et une fresque de 12 m pour une médiathèque… »"></textarea><div class="mic-row"><button type="button" id="mic" class="secondary">Dicter mon brief</button></div></div><button class="primary" id="create-submit" type="submit">Générer ma première version</button></form><p class="status" id="app-status" role="status" aria-live="polite"></p><p id="view-link" class="hidden" style="margin-top:0.5rem"><a class="primary" id="view-link-a" style="display:inline-block;text-decoration:none" href="#" target="_blank" rel="noopener">Voir mon portfolio ↗</a></p></section><section class="panel hidden" id="modify-panel"><h2>Modifier mon portfolio</h2><p class="hint">Une seule version en ligne : chaque modification remplace la précédente.</p><p><strong id="modify-name"></strong> · <span id="modify-credits" class="credits"></span> · <a id="modify-view" href="#" target="_blank" rel="noopener">Voir mon portfolio ↗</a></p><p><button id="modify-recharge" class="primary" type="button">Recharger 5 €</button></p><p class="status" id="modify-status" role="status" aria-live="polite"></p><form id="edit-form"><input type="hidden" id="edit-site" name="siteId"><div class="field"><label for="edit-prompt">Que veux-tu changer ?</label><textarea id="edit-prompt" name="prompt" rows="3" maxlength="2000" placeholder="Dis-le avec tes mots, ou dicte-le. Ex. passe en thème sombre, mets la fresque en premier…"></textarea><div class="mic-row"><button type="button" id="mic2" class="secondary">Dicter</button></div></div><button class="primary" id="edit-submit" type="submit">Modifier (1 crédit)</button></form><p style="margin-top:1.2rem"><button id="modify-delete" class="secondary" type="button">Supprimer mon portfolio</button></p></section><aside class="panel"><p class="eyebrow">Mes portfolios</p><h2>Mes sites</h2><p class="hint">Tes projets et modifications apparaîtront ici.</p><div class="site-list" id="site-list"></div><p class="footnote">Les images seront bientôt disponibles.</p></aside></div></main></div><script>
-const statusBox=document.getElementById('app-status');const createForm=document.getElementById('create-form');const createButton=document.getElementById('create-submit');const siteList=document.getElementById('site-list');
-async function api(url,options){const response=await fetch(url,options);const data=await response.json();if(!response.ok)throw new Error(data.error||'Une erreur est survenue.');return data;}
-async function refreshSites(){try{const list=await api('/api/sites');const active=list[0];const createPanel=document.getElementById('create-panel');const modifyPanel=document.getElementById('modify-panel');if(active){createPanel.classList.add('hidden');modifyPanel.classList.remove('hidden');document.getElementById('edit-site').value=active.id;document.getElementById('modify-name').textContent=active.name;document.getElementById('modify-credits').textContent=(active.credits??0)+' crédits';document.getElementById('modify-view').href='/s/'+encodeURIComponent(active.slug);}else{createPanel.classList.remove('hidden');modifyPanel.classList.add('hidden');}siteList.replaceChildren();for(const site of list){const item=document.createElement('div');item.className='site-item';const info=document.createElement('span');info.textContent=site.name;const meta=document.createElement('small');meta.textContent=(site.status==='live'?'En ligne':'Brouillon')+(site.legacy===false?'':' · Ancien');info.append(meta);if(site.status==='live'&&site.slug){const view=document.createElement('div');const link=document.createElement('a');link.href='/s/'+encodeURIComponent(site.slug);link.target='_blank';link.rel='noopener';link.textContent='Voir ↗';view.append(link);info.append(view);}const right=document.createElement('span');const credits=document.createElement('span');credits.className='credits';credits.textContent=(site.credits??0)+' crédits';right.append(credits);const del=document.createElement('button');del.className='secondary';del.style.marginLeft='0.6rem';del.textContent='Supprimer';del.onclick=async()=>{if(!confirm('Supprimer définitivement ce portfolio ?'))return;try{await api('/api/sites/'+encodeURIComponent(site.id),{method:'DELETE'});await refreshSites();statusBox.textContent='Portfolio supprimé.';}catch(error){statusBox.textContent=error.message;}};right.append(del);item.append(info,right);siteList.append(item);}}catch(error){siteList.textContent=error.message;}}
-document.getElementById('mic').addEventListener('click',()=>{const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SpeechRecognition){statusBox.textContent='La dictée n’est pas disponible dans ce navigateur. Tu peux écrire ton brief.';return;}const recognition=new SpeechRecognition();recognition.lang='fr-FR';recognition.interimResults=false;recognition.onresult=(event)=>{const promptField=document.getElementById('prompt');promptField.value+=(promptField.value?' ':'')+event.results[0][0].transcript;};recognition.onerror=()=>{statusBox.textContent='La dictée a échoué. Essaie à nouveau ou écris ton brief.';};recognition.start();statusBox.textContent='Je t’écoute…';recognition.onend=()=>{if(statusBox.textContent==='Je t’écoute…')statusBox.textContent='';};});
-createForm.addEventListener('submit',async(event)=>{event.preventDefault();createButton.disabled=true;document.getElementById('view-link').classList.add('hidden');statusBox.textContent='Création du portfolio…';try{const payload=Object.fromEntries(new FormData(createForm));const site=await api('/api/sites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});statusBox.textContent='Génération du contenu et du site…';const result=await api('/api/sites/'+encodeURIComponent(site.id)+'/v1',{method:'POST'});statusBox.textContent='Ta première version est en ligne. Style proposé : '+(result.designDirection||'direction visuelle adaptée à tes projets')+'.';const viewLink=document.getElementById('view-link-a');viewLink.href='/s/'+encodeURIComponent(result.slug||site.slug);document.getElementById('view-link').classList.remove('hidden');createForm.reset();await refreshSites();}catch(error){statusBox.textContent=error.message;}finally{createButton.disabled=false;}});
-const editForm=document.getElementById('edit-form');const editButton=document.getElementById('edit-submit');
-function dictate(targetId,statusEl){const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SpeechRecognition){statusEl.textContent='La dictée n’est pas disponible dans ce navigateur. Tu peux écrire.';return;}const recognition=new SpeechRecognition();recognition.lang='fr-FR';recognition.interimResults=false;recognition.onresult=(event)=>{const field=document.getElementById(targetId);field.value+=(field.value?' ':'')+event.results[0][0].transcript;};recognition.onerror=()=>{statusEl.textContent='La dictée a échoué. Essaie à nouveau ou écris.';};recognition.start();statusEl.textContent='Je t’écoute…';recognition.onend=()=>{if(statusEl.textContent==='Je t’écoute…')statusEl.textContent='';};}
-document.getElementById('mic2').addEventListener('click',()=>dictate('edit-prompt',document.getElementById('modify-status')));
-editForm.addEventListener('submit',async(event)=>{event.preventDefault();editButton.disabled=true;document.getElementById('view-link').classList.add('hidden');statusBox.textContent='Modification en cours…';try{const siteId=document.getElementById('edit-site').value;const prompt=document.getElementById('edit-prompt').value;const result=await api('/api/sites/'+encodeURIComponent(siteId)+'/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});statusBox.textContent='C’est en ligne. ('+(result.credits??0)+' crédits restants)';const viewLink=document.getElementById('view-link-a');viewLink.href='/s/'+encodeURIComponent(result.slug);document.getElementById('view-link').classList.remove('hidden');document.getElementById('edit-prompt').value='';await refreshSites();}catch(error){statusBox.textContent=error.message;}finally{editButton.disabled=false;}});
-document.getElementById('modify-delete').addEventListener('click',async()=>{if(!confirm('Supprimer définitivement ce portfolio ?'))return;try{const siteId=document.getElementById('edit-site').value;await api('/api/sites/'+encodeURIComponent(siteId),{method:'DELETE'});await refreshSites();statusBox.textContent='Portfolio supprimé. Ta première génération gratuite reste utilisée.';}catch(error){statusBox.textContent=error.message;}});
-document.getElementById('logout').addEventListener('click',async()=>{try{await fetch('/api/auth/logout',{method:'POST'});}finally{window.location.href='/login';}});refreshSites();
-</script></body></html>`;
+const CONVERSATION_TEMPLATE = readFileSync(path.join(STUDIO_DIR, 'views/conversation.html'), 'utf8');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -338,9 +354,96 @@ function absDist(site) {
   return existsSync(candidate) ? candidate : null;
 }
 
+const slugify = (value) => String(value ?? '').toLowerCase().normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+
+function webpDimensions(data) {
+  if (data.length < 30 || data.toString('ascii', 0, 4) !== 'RIFF' || data.toString('ascii', 8, 12) !== 'WEBP') return null;
+  let offset = 12;
+  while (offset + 8 <= data.length) {
+    const chunk = data.toString('ascii', offset, offset + 4);
+    const length = data.readUInt32LE(offset + 4);
+    const start = offset + 8;
+    if (start + length > data.length) return null;
+    if (chunk === 'VP8X' && length >= 10) {
+      return { width: 1 + data.readUIntLE(start + 4, 3), height: 1 + data.readUIntLE(start + 7, 3) };
+    }
+    if (chunk === 'VP8L' && length >= 5 && data[start] === 0x2f) {
+      const width = 1 + ((data[start + 2] & 0x3f) << 8) + data[start + 1];
+      const height = 1 + ((data[start + 4] & 0x0f) << 10) + (data[start + 3] << 2) + ((data[start + 2] & 0xc0) >> 6);
+      return { width, height };
+    }
+    if (chunk === 'VP8 ' && length >= 10 && data[start + 3] === 0x9d && data[start + 4] === 0x01 && data[start + 5] === 0x2a) {
+      return { width: data.readUInt16LE(start + 6) & 0x3fff, height: data.readUInt16LE(start + 8) & 0x3fff };
+    }
+    offset = start + length + (length % 2);
+  }
+  return null;
+}
+
+function sanitizedFileName(value) {
+  const name = path.basename(String(value ?? 'image.webp')).replace(/[^\p{L}\p{N}._ -]/gu, '').trim().slice(0, 100);
+  return name || 'image.webp';
+}
+
+function briefProfilePrompt(profile) {
+  return [
+    `Portfolio pour ${profile.displayName} (${profile.craft}).`,
+    `Audience : ${profile.audience || 'non précisée'}. Objectif : ${profile.goal || 'non précisé'}.`,
+    `Présentation confirmée : ${profile.bio || 'aucune biographie fournie'}.`,
+    `Expériences : ${JSON.stringify(profile.experiences)}.`,
+    `Réalisations : ${JSON.stringify(profile.projects)}.`,
+    `La personne a confirmé ne pas avoir de projets à montrer : ${profile.noProjectsYet ? 'oui, ne rien inventer' : 'non'}.`,
+    `Articles et publications : ${JSON.stringify(profile.articles)}.`,
+    `Direction visuelle : ${profile.visual.preference || 'libre, à proposer selon le métier et les réalisations'}. Références : ${JSON.stringify(profile.visual.references)}.`,
+    `Composition : ${profile.layout.preference || (profile.layout.cardsJustified ? 'cartes uniquement pour présenter les réalisations utiles' : 'composition éditoriale, pas de cartes par défaut')}.`,
+    `Contact : ${JSON.stringify(profile.contact)}.`,
+  ].join('\n').slice(0, 5000);
+}
+
+function applyBriefProfile(site, profile) {
+  site.briefProfile = profile;
+  if (profile.displayName) {
+    site.name = profile.displayName;
+    site.slug = slugify(profile.displayName) || `portfolio-${site.id}`;
+  }
+  if (profile.craft) site.craft = profile.craft;
+  site.prompt = briefProfilePrompt(profile);
+  site.profileText = [
+    profile.bio,
+    ...profile.experiences.map((item) => `${item.title} — ${item.role} (${item.years}) : ${item.summary}`),
+    ...profile.articles.map((item) => `Publication : ${item.title} (${item.publisher}, ${item.year}) ${item.summary} ${item.url}`),
+  ]
+    .filter(Boolean).join('\n').slice(0, 8000);
+  site.stylePreference = profile.visual.preference || profile.visual.references.join(', ');
+  const contactEmail = normalizeEmail(profile.contact.email);
+  site.email = isValidEmail(contactEmail) ? contactEmail : '';
+}
+
+function briefResponse(site) {
+  const account = users.get(site.ownerEmail);
+  return {
+    site: {
+      id: site.id,
+      name: site.name,
+      slug: site.slug,
+      status: site.status,
+      attachments: (site.attachments ?? []).map(({ id, name, width, height }) => ({ id, name, width, height })),
+    },
+    messages: site.briefMessages ?? [],
+    profile: site.briefProfile ?? null,
+    summary: site.briefSummary ?? '',
+    missing: site.briefMissing ?? ['displayName', 'craft', 'purpose', 'projects', 'visual'],
+    ready: Boolean(site.briefReady),
+    turn: account?.briefTurnsUsed ?? site.briefTurns ?? 0,
+    budgetReached: Boolean(site.briefBudgetReached),
+    limits: BRIEF_AGENT_LIMITS,
+  };
+}
+
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost');
-  const m = url.pathname.match(/^\/api\/sites\/([^/]+)(\/(v1|edit))?$/);
+  const m = url.pathname.match(/^\/api\/sites\/([^/]+)(\/(v1|edit|assets|brief))?$/);
   addSecurityHeaders(res);
   const requiresAuth = url.pathname === '/studio'
     || url.pathname === '/api/sites'
@@ -509,14 +612,15 @@ const server = createServer(async (req, res) => {
   }
   if (req.method === 'GET' && url.pathname === '/studio') {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.end(FORM
-      .replace('</head>', '<style>.workspace{grid-template-columns:minmax(0,1fr)}</style></head>')
-      .replace(/<aside class="panel">[\s\S]*?<\/aside>/, '')
-      .replace('</main>', '<div class="hidden" id="site-list" aria-hidden="true"></div></main>')
-      .replace('3 étapes, 5 minutes.', 'Ta première génération est offerte — un seul portfolio par adresse email.')
-      .replace('<button id="modify-recharge" class="primary" type="button">Recharger 5 €</button>', '<p class="hint">La recharge de crédits sera bientôt disponible.</p>')
+    res.end(CONVERSATION_TEMPLATE
+      .replace('@@BRAND_STYLE@@', BRAND_STYLE)
       .replaceAll('@@EMAIL@@', escapeHtml(currentUser?.email ?? ''))
       .replace('@@LOGOUT_CLASS@@', AUTH_MODE === 'magic' ? '' : 'hidden'));
+    return;
+  }
+  if (req.method === 'GET' && url.pathname === '/conversation.js') {
+    res.setHeader('Content-Type', MIME['.js']);
+    res.end(readFileSync(path.join(STUDIO_DIR, 'public/conversation.js')));
     return;
   }
   if (req.method === 'GET' && url.pathname.startsWith('/brand-fonts/')) {
@@ -559,6 +663,89 @@ const server = createServer(async (req, res) => {
     send(res, 200, { ok: true });
     return;
   }
+  const assetMatch = url.pathname.match(/^\/api\/sites\/([^/]+)\/assets\/([a-f0-9-]{36})$/i);
+  if (assetMatch && ['GET', 'DELETE'].includes(req.method)) {
+    const site = sites.get(assetMatch[1]);
+    const asset = site?.attachments?.find((item) => item.id === assetMatch[2]);
+    if (!site || !asset || (AUTH_MODE === 'magic' && (site.ownerEmail !== currentUser?.email || site.legacy === true))) {
+      send(res, 404, { error: 'image not found' });
+      return;
+    }
+    const file = path.join(DATA_DIR, 'uploads', site.id, `${asset.id}.webp`);
+    if (req.method === 'DELETE') {
+      if (site.status === 'live') {
+        send(res, 409, { error: 'Supprime les images pendant la préparation du portfolio.' });
+        return;
+      }
+      rmSync(file, { force: true });
+      site.attachments = site.attachments.filter((item) => item.id !== asset.id);
+      for (const message of site.briefMessages ?? []) {
+        message.attachments = (message.attachments ?? []).filter((item) => item.id !== asset.id);
+      }
+      saveState();
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
+    if (!existsSync(file)) {
+      send(res, 404, { error: 'image not found' });
+      return;
+    }
+    res.setHeader('Content-Type', 'image/webp');
+    res.end(readFileSync(file));
+    return;
+  }
+  if (m && m[3] === 'assets' && req.method === 'POST') {
+    const site = sites.get(m[1]);
+    if (!site || (AUTH_MODE === 'magic' && (site.ownerEmail !== currentUser?.email || site.legacy === true))) {
+      send(res, 404, { error: 'unknown site' });
+      return;
+    }
+    if (site.status === 'live') {
+      send(res, 409, { error: 'Les images se joignent pendant la préparation du portfolio.' });
+      return;
+    }
+    try {
+      const body = await readJson(req, 1_050_000);
+      if ((site.attachments ?? []).length >= 8) {
+        send(res, 413, { error: 'Tu peux joindre 8 images au maximum.' });
+        return;
+      }
+      const match = String(body.dataUrl ?? '').match(/^data:image\/webp;base64,([A-Za-z0-9+/]+={0,2})$/);
+      if (!match) {
+        send(res, 400, { error: 'Image invalide. Dépose un JPG, PNG ou WebP pour la convertir.' });
+        return;
+      }
+      const data = Buffer.from(match[1], 'base64');
+      if (!data.length || data.length > 700 * 1024) {
+        send(res, 413, { error: 'Cette image reste trop volumineuse après optimisation.' });
+        return;
+      }
+      const dimensions = webpDimensions(data);
+      if (!dimensions || dimensions.width < 1 || dimensions.height < 1 || Math.max(dimensions.width, dimensions.height) > 680) {
+        send(res, 400, { error: 'L’image optimisée n’a pas le bon format ou dépasse 680 px.' });
+        return;
+      }
+      const attachment = {
+        id: randomUUID(),
+        name: sanitizedFileName(body.name),
+        width: dimensions.width,
+        height: dimensions.height,
+        createdAt: new Date().toISOString(),
+      };
+      const uploadDir = path.join(DATA_DIR, 'uploads', site.id);
+      mkdirSync(uploadDir, { recursive: true, mode: 0o700 });
+      writeFileSync(path.join(uploadDir, `${attachment.id}.webp`), data, { mode: 0o600, flag: 'wx' });
+      site.attachments ??= [];
+      site.attachments.push(attachment);
+      saveState();
+      logJob({ kind: 'brief-image-upload', siteId: site.id, status: 'optimized', bytes: data.length });
+      send(res, 201, attachment);
+    } catch (error) {
+      send(res, 400, { error: error.message });
+    }
+    return;
+  }
   if (req.method === 'GET' && url.pathname === '/api/sites') {
     const ownedSites = [...sites.values()].filter((site) =>
       AUTH_MODE === 'basic'
@@ -574,6 +761,9 @@ const server = createServer(async (req, res) => {
       legacy: site.legacy !== false,
       credits: credits.get(site.ownerEmail) ?? 0,
       firstGenerationFree: !users.get(site.ownerEmail)?.firstGenerationUsed,
+      briefReady: Boolean(site.briefReady),
+      briefTurns: site.briefTurns ?? 0,
+      attachments: (site.attachments ?? []).map(({ id, name, width, height }) => ({ id, name, width, height })),
     })));
     return;
   }
@@ -586,7 +776,8 @@ const server = createServer(async (req, res) => {
       const profileText = String(body.profileText ?? '').trim().slice(0, 8000);
       const publicEmail = normalizeEmail(body.email);
       const stylePreference = String(body.stylePreference ?? '').trim().slice(0, 160);
-      if (!name || !craft || !prompt) {
+      const hasStructuredBrief = Boolean(name || craft || prompt || profileText || stylePreference);
+      if (hasStructuredBrief && (!name || !craft || !prompt)) {
         send(res, 400, { error: 'name, craft and prompt are required' });
         return;
       }
@@ -599,22 +790,171 @@ const server = createServer(async (req, res) => {
           return;
         }
       }
-      accountFor(ownerEmail);
+      const ownerAccount = accountFor(ownerEmail);
+      if (!hasStructuredBrief && ((ownerAccount?.briefTurnsUsed ?? 0) >= getBriefTurnLimit()
+        || (ownerAccount?.briefBudgetUsedEur ?? 0) >= BRIEF_AGENT_LIMITS.maxCostEur)) {
+        send(res, 429, { error: 'Le budget de préparation de ton premier portfolio est déjà utilisé.' });
+        return;
+      }
       const id = `site_${++seq}`;
-      const slug = name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const initialName = name || 'Nouveau portfolio';
+      const slug = name ? slugify(name) : `portfolio-${id}`;
       const site = {
-        id, slug, name, craft, prompt: prompt.slice(0, 5_000), profileText,
+        id, slug, name: initialName, craft: craft || '', prompt: prompt.slice(0, 5_000), profileText,
         email: publicEmail && isValidEmail(publicEmail) ? publicEmail : '',
         stylePreference,
         ownerEmail,
         legacy: false,
         status: 'draft',
       };
+      if (!hasStructuredBrief) {
+        site.attachments = [];
+        site.briefMessages = [{
+          role: 'assistant',
+          content: 'Salut ! Raconte-moi ce que tu fais, même en vrac. Tu peux commencer par ton nom ou ton pseudo, coller ton LinkedIn/CV ou dicter.',
+        }];
+        site.briefProfile = null;
+        site.briefTurns = 0;
+        site.briefCostEur = 0;
+        site.briefReady = false;
+        site.briefMissing = ['displayName', 'craft', 'purpose', 'projects', 'visual'];
+      }
       sites.set(id, site);
       saveState();
-      send(res, 201, { id: site.id, name: site.name, status: site.status, credits: credits.get(ownerEmail) ?? 0, firstGenerationFree: !users.get(ownerEmail)?.firstGenerationUsed });
+      send(res, 201, { id: site.id, name: site.name, slug: site.slug, status: site.status, credits: credits.get(ownerEmail) ?? 0, firstGenerationFree: !users.get(ownerEmail)?.firstGenerationUsed });
     } catch (err) {
       send(res, 400, { error: err.message });
+    }
+    return;
+  }
+  if (m && m[3] === 'brief' && req.method === 'GET') {
+    const site = sites.get(m[1]);
+    if (!site || (AUTH_MODE === 'magic' && (site.ownerEmail !== currentUser?.email || site.legacy === true))) {
+      send(res, 404, { error: 'unknown site' });
+      return;
+    }
+    if (!site.briefMessages) {
+      site.briefMessages = [{
+        role: 'assistant',
+        content: 'Salut ! Raconte-moi ce que tu fais, même en vrac. Tu peux commencer par ton nom ou ton pseudo, coller ton LinkedIn/CV ou dicter.',
+      }];
+      site.attachments ??= [];
+      site.briefTurns ??= 0;
+      site.briefCostEur ??= 0;
+      site.briefReady ??= false;
+      site.briefMissing ??= ['displayName', 'craft', 'purpose', 'projects', 'visual'];
+      saveState();
+    }
+    send(res, 200, briefResponse(site));
+    return;
+  }
+  if (m && m[3] === 'brief' && req.method === 'POST') {
+    const site = sites.get(m[1]);
+    if (!site || (AUTH_MODE === 'magic' && (site.ownerEmail !== currentUser?.email || site.legacy === true))) {
+      send(res, 404, { error: 'unknown site' });
+      return;
+    }
+    if (site.status === 'live' || site.briefBusy) {
+      send(res, 409, { error: 'Cette conversation est déjà en cours ou ton portfolio est en ligne.' });
+      return;
+    }
+    const account = accountFor(site.ownerEmail || currentUser?.email || '');
+    if ((account?.briefTurnsUsed ?? 0) >= getBriefTurnLimit()) {
+      send(res, 429, { error: 'La préparation a atteint sa limite de questions. Ajoute les derniers détails dans un seul message ou reprends le brief.' });
+      return;
+    }
+    if ((account?.briefBudgetUsedEur ?? 0) >= BRIEF_AGENT_LIMITS.maxCostEur) {
+      send(res, 429, { error: 'Le budget de préparation est atteint. Aucun nouvel appel IA ne sera lancé.' });
+      return;
+    }
+    let attemptedTurn = (account?.briefTurnsUsed ?? 0) + 1;
+    try {
+      const body = await readJson(req);
+      const message = String(body.message ?? '').trim().slice(0, 4000);
+      const requestedIds = [...new Set(Array.isArray(body.assetIds) ? body.assetIds.map(String) : [])].slice(0, 8);
+      const attachments = (site.attachments ?? []).filter((asset) => requestedIds.includes(asset.id));
+      if (!message && attachments.length === 0) {
+        send(res, 400, { error: 'Écris un message ou joins au moins une image.' });
+        return;
+      }
+      if (requestedIds.length !== attachments.length) {
+        send(res, 400, { error: 'Une image jointe n’est plus disponible. Retire-la puis réessaie.' });
+        return;
+      }
+      site.attachments ??= [];
+      site.briefMessages ??= [];
+      site.briefCostEur ??= 0;
+      site.briefBusy = true;
+      site.briefReady = false;
+      site.briefBudgetReached = false;
+      account.briefTurnsUsed = (account.briefTurnsUsed ?? 0) + 1;
+      site.briefTurns = account.briefTurnsUsed;
+      attemptedTurn = site.briefTurns;
+      site.briefMessages.push({
+        role: 'user',
+        content: message || 'Voici des images pour mon portfolio.',
+        attachments: attachments.map(({ id, name }) => ({ id, name })),
+      });
+      site.briefTurns += 1;
+      saveState();
+
+      const agentImages = attachments.map((asset) => ({
+        ...asset,
+        data: readFileSync(path.join(DATA_DIR, 'uploads', site.id, `${asset.id}.webp`)),
+      }));
+      const result = await advanceBrief({
+        messages: site.briefMessages,
+        previousProfile: site.briefProfile ?? {},
+        attachments: agentImages,
+        turnNumber: site.briefTurns,
+        spentEur: account.briefBudgetUsedEur ?? 0,
+      });
+      applyBriefProfile(site, result.profile);
+      site.briefProfile = result.profile;
+      site.briefReady = result.ready;
+      site.briefMissing = result.missing;
+      site.briefSummary = result.summary;
+      site.briefCostEur += result.costEur;
+      account.briefBudgetUsedEur = Number(account.briefBudgetUsedEur ?? 0) + result.budgetEur;
+      site.briefBudgetReached = Boolean(result.budgetReached);
+      site.briefBusy = false;
+      site.briefMessages.push({ role: 'assistant', content: result.reply });
+      saveState();
+      logJob({
+        kind: 'brief-turn',
+        siteId: site.id,
+        status: result.ready ? 'ready' : 'needs-info',
+        turn: site.briefTurns,
+        model: result.usage.model,
+        tokensIn: result.usage.tokensIn,
+        tokensOut: result.usage.tokensOut,
+        costEur: result.costEur,
+        budgetEur: result.budgetEur,
+      });
+      send(res, 200, briefResponse(site));
+    } catch (error) {
+      site.briefBusy = false;
+      if (error.partialBudgetEur) {
+        account.briefBudgetUsedEur = Number(account.briefBudgetUsedEur ?? 0) + error.partialBudgetEur;
+        site.briefCostEur = Number(site.briefCostEur ?? 0) + Number(error.partialCostEur ?? 0);
+      }
+      account.briefTurnsUsed = Math.max(0, (account.briefTurnsUsed ?? 1) - 1);
+      site.briefTurns = account.briefTurnsUsed;
+      site.briefMessages?.pop();
+      saveState();
+      logJob({
+        kind: 'brief-turn',
+        siteId: site.id,
+        status: 'failed',
+        turn: attemptedTurn,
+        error: error.message === 'brief_cost_limit' ? 'budget-limit' : 'provider-error',
+        costEur: Number(error.partialCostEur ?? 0),
+        budgetEur: Number(error.partialBudgetEur ?? 0),
+      });
+      const code = error.message === 'brief_cost_limit' ? 429 : 502;
+      send(res, code, { error: code === 429
+        ? 'Le budget de préparation est atteint. Aucun autre appel IA n’a été lancé.'
+        : 'Je n’arrive pas à analyser ce message pour le moment. Réessaie sans perdre ton brief.' });
     }
     return;
   }
@@ -634,6 +974,7 @@ const server = createServer(async (req, res) => {
       return;
     }
     sites.delete(m[1]);
+    rmSync(path.join(DATA_DIR, 'uploads', site.id), { recursive: true, force: true });
     if (site.distDir) rmSync(path.resolve(STUDIO_DIR, site.distDir, '..'), { recursive: true, force: true });
     lastLiveDir = null;
     for (const candidate of [...sites.values()].reverse()) {
@@ -658,6 +999,10 @@ const server = createServer(async (req, res) => {
       return;
     }
     const kind = m[3];
+    if (kind === 'v1' && site.briefMessages && !site.briefReady) {
+      send(res, 409, { error: 'Termine le brief et relis son résumé avant de créer ton portfolio.' });
+      return;
+    }
     const accountEmail = site.ownerEmail || currentUser?.email || '';
     const account = accountFor(accountEmail);
     if (site.status === 'building') {
@@ -669,9 +1014,11 @@ const server = createServer(async (req, res) => {
     try {
       const body = kind === 'edit' ? await readJson(req) : {};
       const editPrompt = kind === 'edit' ? String(body.prompt ?? '').trim() : '';
-      const basePrompt = site.profileText
-        ? `Profil fourni :\n${site.profileText}\n\nBrief :\n${site.prompt}`
-        : site.prompt;
+      const basePrompt = site.briefProfile
+        ? `Brief conversationnel confirmé :\n${site.prompt}\n\nBiographie et expériences confirmées :\n${site.profileText}`
+        : site.profileText
+          ? `Profil fourni :\n${site.profileText}\n\nBrief :\n${site.prompt}`
+          : site.prompt;
       const prompt = kind === 'edit'
         ? `${basePrompt}\n\nRequested update: ${editPrompt}`
         : basePrompt;
@@ -692,10 +1039,18 @@ const server = createServer(async (req, res) => {
       }
       site.status = 'building';
       saveState();
+      const selectedAssetIds = new Set((site.briefProfile?.projects ?? []).flatMap((project) => project.assetIds ?? []));
+      const assets = (site.attachments ?? [])
+        .filter((asset) => selectedAssetIds.has(asset.id))
+        .map((asset) => ({
+          ...asset,
+          data: readFileSync(path.join(DATA_DIR, 'uploads', site.id, `${asset.id}.webp`)),
+        }));
       const result = await runJob({
         slug: site.slug,
         kind,
         profile: site,
+        assets,
         prompt: kind === 'edit'
           ? `${site.prompt}\n\nRequested update: ${prompt}`
           : prompt,
@@ -704,6 +1059,7 @@ const server = createServer(async (req, res) => {
       site.distDir = result.distDir;
       site.theme = result.theme ?? site.theme;
       site.motif = result.motif ?? site.motif ?? 'cercles';
+      site.projectPresentation = result.projectPresentation ?? site.projectPresentation ?? 'editorial';
       site.designDirection = result.designDirection;
       if (freeFirstGeneration && account) account.firstGenerationUsed = true;
       if (result.absDistDir) lastLiveDir = result.absDistDir;

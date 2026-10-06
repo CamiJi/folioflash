@@ -1,11 +1,11 @@
 # Folioflash — prompt-to-portfolio in minutes
 
-> Décris ton activité, ajoute tes images si tu en as, obtiens un portfolio Astro rapide. Crédits IA au coût mesuré + petite marge pendant la beta.
+> Une conversation pour comprendre ton travail, puis un portfolio Astro rapide qui lui ressemble. Crédits IA au coût mesuré + petite marge pendant la beta.
 
-**Folioflash** vise à transformer un brief en portfolio **Astro + Tailwind** statique et bilingue. Le LLM doit proposer une direction artistique si le brief n'en précise pas ; les assets devront être optimisés côté serveur au chargement.
+**Folioflash** transforme une conversation en brief confirmé, puis en portfolio **Astro + Tailwind** statique et bilingue. Une composition éditoriale est le point de départ ; les cartes et galeries ne sont utilisées que si le contenu le justifie.
 
 - 🇫🇷 Version française : voir `docs/cahier-des-charges.md`
-- 📐 CDC : `docs/cahier-des-charges.md` · Architecture : `docs/architecture.md` · Marque Folioflash : `docs/brand-system.md` · Template portfolio : `docs/design-system.md` · Coûts : `docs/couts.md` · Roadmap : `docs/roadmap.md`
+- 📐 CDC : `docs/cahier-des-charges.md` · Brief et agents : `docs/briefing-agent.md` · Architecture : `docs/architecture.md` · Marque Folioflash : `docs/brand-system.md` · Template portfolio : `docs/design-system.md` · Coûts : `docs/couts.md` · Roadmap : `docs/roadmap.md`
 - 🧱 Code : `template-folio/` (Astro + Tailwind) · `studio/` (Studio Node) · `deploy/` (nano)
 
 ![status](https://img.shields.io/badge/status-M1%20prototype-orange)
@@ -15,16 +15,18 @@
 
 ## How it works
 
-1. **Décris** ton portfolio par texte ou par la voix ; l'upload d'images reste à construire.
-2. **Prévisualise** la V1 dans le Studio. Le client n'obtiendra pas de sous-domaine Folioflash.
-3. **Publie** avec ton propre domaine : tu le gardes chez ton registrar et pointes les DNS vers notre serveur (parcours à construire).
-4. **Modifie** ton site par prompt ; la première génération est offerte, puis les crédits seront nécessaires (estimation avant facturation à construire).
+1. **Parle** dans une seule fenêtre : écris, dicte, colle ton LinkedIn/CV ou dépose des photos.
+2. **Précise** ton projet avec l'interviewer ; l'évaluateur vérifie que le brief est assez complet, sans inventer de faits.
+3. **Relis** le résumé et choisis les images à publier ; la première V1 est générée après ta confirmation.
+4. **Prévisualise** dans le Studio. Pas de sous-domaine Folioflash ; tu gardes ton domaine chez ton registrar.
+5. **Modifie** le site dans une conversation ; les changements suivants utilisent des crédits.
 
 ## Stack (proven on `earlyreflect`)
 
 - Astro + Tailwind + TypeScript, builds statiques publiés sur le serveur personnel
 - Domaines clients conservés chez leurs registrars ; routage et TLS provisionnés après vérification DNS
-- Optimisation des uploads et paiement Stripe restent à implémenter ; aucun code client arbitraire généré par LLM
+- Brief OpenRouter borné à 6 messages et 0,02 € par compte ; images converties en WebP dans le navigateur avant l'envoi
+- Paiement Stripe, routage de domaines et sauvegarde/restauration automatisés restent à implémenter ; aucun code client arbitraire généré par LLM
 - Landing/Studio Folioflash : identité Nestor (noir, crème, or ; Inter + Playfair Display)
 
 ## Prix beta
@@ -40,7 +42,7 @@ Voir `docs/couts.md`. Le nano actuel n'est pas une capacité illimitée : nombre
 ## Status / roadmap
 
 - **Prototype** : Studio, génération LLM et template visibles sur le serveur.
-- **M1** : lien magique confirmé, SQLite et première génération gratuite par compte intégrés ; logout/retrait Basic Auth nano, import profil, optimisation assets, benchmark modèles, domaines clients, Stripe test/live restent à traiter.
+- **M1** : lien magique, SQLite, brief conversationnel, upload WebP et première génération gratuite intégrés ; restent logout smoke-test, benchmark visuel/coût, domaines clients, backups restaurés et Stripe test/live.
 - **M2** : rollback, industrialisation et migration serveur si capacité atteinte ; blog SEO et LinkedIn validés par humain.
 
 See `docs/roadmap.md`.

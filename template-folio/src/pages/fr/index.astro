@@ -10,6 +10,7 @@ const projects = (await getCollection('projects'))
   .filter((project) => project.data.featured)
   .sort((a, b) => (a.data.order ?? 999) - (b.data.order ?? 999))
   .slice(0, 6);
+const presentation = (site as unknown as { projectPresentation?: string }).projectPresentation === 'gallery' ? 'gallery' : 'editorial';
 const route = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
 ---
 
@@ -26,14 +27,14 @@ const route = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+
     </div>
   </section>
 
-  <section class="pt-14 md:pt-20" aria-labelledby="selected-work">
+  {projects.length > 0 && <section class="pt-14 md:pt-20" aria-labelledby="selected-work">
     <div class="section-heading mb-8 md:mb-10">
       <h2 id="selected-work">{t('fr', 'featured')}</h2>
       <p>{projects.length} {projects.length === 1 ? 'projet' : 'projets'}</p>
     </div>
-    <div class="project-grid">
-      {projects.map((project, index) => <ProjectCard project={project} index={index} lang="fr" />)}
+    <div class:list={['project-grid', presentation === 'editorial' && 'project-grid--editorial']}>
+      {projects.map((project, index) => <ProjectCard project={project} index={index} lang="fr" presentation={presentation} />)}
     </div>
     <a class="text-link mt-10" href={route('fr/realisations/')}>{t('fr', 'allProjects')} <span aria-hidden="true">↗</span></a>
-  </section>
+  </section>}
 </Base>

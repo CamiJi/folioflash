@@ -13,7 +13,9 @@ COPY studio/ ./studio/
 COPY template-folio/ ./template-folio/
 RUN mkdir -p studio/data \
   && test -d template-folio/node_modules/astro \
-  && node --check studio/server.mjs
+  && node --check studio/server.mjs \
+  && node --check studio/public/conversation.js \
+  && node --check studio/lib/brief-agent.mjs
 
 ENV PORT=4322 NODE_BIN=node TEMPLATE_DIR=/app/template-folio
 EXPOSE 4322

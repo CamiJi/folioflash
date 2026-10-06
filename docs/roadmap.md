@@ -17,15 +17,15 @@
 - [ ] Smoke-tester la déconnexion en production (réception + session confirmées ; Basic Auth déjà retiré, `/studio` redirige vers `/login` le 2026-10-06)
 - [x] SQLite pour comptes/sites/jobs/paiements/ledger/crédits ; import JSON à la première ouverture, copie conservée
 - [x] Migration nano exécutée avec sauvegarde préalable ; les sites pilote surnuméraires sont archivés sans supprimer leurs pages publiques
-- [ ] Import de profil V1 par texte/document fourni par l'utilisateur ; URL LinkedIn conservée comme lien, sans scraping ; revue/confirmation avant génération
+- [x] Brief conversationnel unique : texte/coller/dictée, interviewer + évaluateur, résumé confirmé avant génération ; aucune lecture LinkedIn automatique
 - [x] Un portfolio actif par compte/email (409 + espace centré sur un seul site, suppression RGPD) ; filtre anti-emails jetables
 - [x] Première génération gratuite une seule fois par compte ; générations/modifications suivantes à crédits (aucun crédit de test automatique)
 - [x] Logo et lien explicite de la page de connexion ramènent toujours à la landing Folioflash
 - [x] Lien « Voir mon portfolio ↗ » (nouvel onglet) après chaque génération + route publique `/s/<slug>` ; version live unique, pas d'historique utilisateur
 - [x] Styles par métier v1 : 6 palettes (`boucher` blanc/persil, `studio` noir/ambre, `atelier` terracotta…), 6 motifs CSS (`grille`, `onde`, `topo`…), V1 prend le style du LLM, repli déterministe par métier (vérifié : boucher ≠ illustratrice)
-- [ ] Motifs visuels par métier (allowlist `motif` : topographic, waveform, blueprint, botanical, grid, halftone…) choisis par le LLM depuis l'activité, style explicite prioritaire, audit visuel par motif
-- [ ] Upload d'images : contrôles, optimisation WebP/variantes, retrait EXIF, quotas ; ne pas conserver les originaux
-- [ ] Design inference structuré (palette/layout/typo), modifiable via prompt, sans code arbitraire
+- [ ] Motifs visuels par métier choisis depuis les contenus, style explicite prioritaire, audit visuel par motif
+- [x] Dépôt photo dans le prompt : 8 max, 5 Mo source, canvas WebP 680 px/q70, validation magic bytes/dimensions, original jamais envoyé/conservé, consentement de publication
+- [x] Direction de mise en page confirmée : profil structuré, éditorial sans cartes par défaut ; galerie seulement si les réalisations la justifient
 - [ ] Hébergement multi-sites sur le nano : routage Host, DNS du domaine client, provisionnement NPM/TLS automatisé
 - [ ] Spike sécurité/capacité NPM API, builds concurrents, stockage, sauvegardes et restauration ; fixer le plafond de pilotes
 - [ ] Stripe test : publication/hébergement + estimation IA préalable, webhooks idempotents, ledger et remboursement en cas d'échec
@@ -45,10 +45,10 @@
 
 ## Lancement — checklist (ordre proposé)
 1. [ ] Lien magique de bout en bout (réception + connexion confirmées ; tester déconnexion), Basic Auth retiré du nano
-2. [ ] Motifs par métier implémentés et audités (au moins 3 : ex. topographic, waveform, blueprint)
-3. [ ] Upload + optimisation d'images en ligne (quotas, WebP, EXIF retirés, originaux supprimés)
-4. [ ] Import de profil LinkedIn (collage/document + confirmation) branché sur la génération
+2. [ ] Valider le coût du brief (≤ 0,02 € rapporté OpenRouter) et trois briefs réels sans faits inventés
+3. [ ] Motifs par métier implémentés et audités (au moins 3 : ex. topographic, waveform, blueprint)
+4. [ ] Vérifier visuellement au moins trois portfolios : texte seul, expérience/articles, photos de projets
 5. [ ] Portefeuille 5 € via Stripe test → live (estimation avant job, webhooks idempotents, remboursement si échec)
-6. [ ] 3 pilotes de bout en bout (connexion → site → 1 modification payante) + mesure des coûts réels
+6. [ ] 3 pilotes de bout en bout (connexion → brief → site → 1 modification payante) + mesure des coûts réels
 7. [ ] Bouton brouillon LinkedIn opérateur + envoi manuel au réseau
 8. [ ] Seuils nano (RAM/disque/builds) + sauvegardes/restauration testées, plafond de pilotes fixé

@@ -6,6 +6,7 @@ import { t } from '../../i18n/ui';
 import { getCollection } from 'astro:content';
 
 const projects = await getCollection('projects');
+const presentation = (site as unknown as { projectPresentation?: string }).projectPresentation === 'gallery' ? 'gallery' : 'editorial';
 ---
 
 <Base title={`${t('fr', 'allProjects')} — ${site.name}`} description={site.tagline} lang="fr">
@@ -14,7 +15,7 @@ const projects = await getCollection('projects');
     <h1 class="page-title">{t('fr', 'allProjects')}</h1>
     <p class="mt-4 max-w-xl text-base text-muted">{site.tagline}</p>
   </header>
-  <div class="project-grid">
-    {projects.map((project, index) => <ProjectCard project={project} index={index} lang="fr" />)}
-  </div>
+  {projects.length > 0 ? <div class:list={['project-grid', presentation === 'editorial' && 'project-grid--editorial']}>
+    {projects.map((project, index) => <ProjectCard project={project} index={index} lang="fr" presentation={presentation} />)}
+  </div> : <p class="max-w-xl text-muted">Ce portfolio ne présente pas encore de réalisations. Tu peux en apprendre davantage sur {site.name} dans la page à propos.</p>}
 </Base>

@@ -33,8 +33,9 @@ const base = import.meta.env.BASE_URL;
 const route = (path: string) => `${base}${path.replace(/^\/+/, '')}`;
 const homeHref = route(lang === 'fr' ? 'fr/' : '');
 const prefix = lang === 'fr' ? 'fr/' : '';
+const projectCount = (site as unknown as { projectCount?: number }).projectCount;
 const nav = [
-  { label: t(lang, 'work'), href: route(`${prefix}${lang === 'fr' ? 'realisations/' : 'work/'}`) },
+  ...(projectCount === 0 ? [] : [{ label: t(lang, 'work'), href: route(`${prefix}${lang === 'fr' ? 'realisations/' : 'work/'}`) }]),
   { label: t(lang, 'about'), href: route(`${prefix}${lang === 'fr' ? 'a-propos/' : 'about/'}`) },
   { label: t(lang, 'contact'), href: route(`${prefix}contact/`) },
 ];

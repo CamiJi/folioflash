@@ -3,13 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Folioflash Studio — minimal orchestrator (M1): intake form, site records, job log. Zero deps, Node 22+.",
+  "description": "Folioflash Studio — conversation-first portfolio brief, SQLite state and bounded OpenRouter agents.",
   "engines": {
     "node": ">=22.19.0"
   },
   "scripts": {
     "start": "node --experimental-sqlite server.mjs",
-    "check": "node --check server.mjs && node --check lib/database.mjs && node --check lib/auth.mjs && node --check lib/generate.mjs && node --check lib/pipeline.mjs && node --check test-support/mock-resend.mjs && node --check test-support/mock-nodemailer.mjs",
+    "check": "node --check server.mjs && node --check public/conversation.js && node --check lib/brief-agent.mjs && node --check lib/database.mjs && node --check lib/auth.mjs && node --check lib/generate.mjs && node --check lib/pipeline.mjs && node --check test-support/mock-resend.mjs && node --check test-support/mock-nodemailer.mjs",
     "test": "node --experimental-sqlite --test"
   },
   "dependencies": {

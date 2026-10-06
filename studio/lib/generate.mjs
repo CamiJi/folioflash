@@ -86,12 +86,14 @@ function isReadableTheme(theme) {
 export { MOTIFS, THEME_KEYS, FALLBACK_THEMES, styleForCraft, isReadableTheme };
 
 const SYSTEM = `You generate portfolio content as STRICT JSON, no markdown, no commentary.
-Shape: {"tagline":str,"bio":str,"theme":{"paper":hex,"surface":hex,"ink":hex,"muted":hex,"rule":hex,"brand":hex,"brandStrong":hex,"artOne":hex,"artTwo":hex,"artThree":hex},"motif":"cercles|topo|onde|grille|botanique|chevrons","art":{"one":hex,"two":hex,"three":hex},"designDirection":str(max 160),"fr":{"tagline":str,"bio":str},
-"projects":[{"title":str,"role":str,"years":str,"summary":str(max 200 chars),
+Shape: {"tagline":str,"bio":str,"theme":{"paper":hex,"surface":hex,"ink":hex,"muted":hex,"rule":hex,"brand":hex,"brandStrong":hex,"artOne":hex,"artTwo":hex,"artThree":hex},"motif":"cercles|topo|onde|grille|botanique|chevrons","art":{"one":hex,"two":hex,"three":hex},"designDirection":str(max 160),"projectPresentation":"editorial|gallery","fr":{"tagline":str,"bio":str},
+"projects":[{"title":str,"role":str,"years":str,"summary":str(max 200 chars),"assetId":str|null,"imageAlt":str,
 "fr":{"title":str,"role":str,"summary":str(max 200 chars)}}]}
 Rules: 3 projects max, primary project copy in English, accurate French translation in fr,
 summaries ≤ 200 chars per language, no lorem ipsum, tone direct and concrete. If no style preference
 is supplied, propose a specific visual direction based on craft and projects, not generic adjectives.
+Use only confirmed facts from the brief. Choose gallery presentation only when multiple visual works genuinely benefit from browsing; otherwise choose editorial. Never add decorative cards just to fill space. Use only supplied asset IDs, never invent image paths.
+If the person explicitly has no projects to show, return an empty projects array. Keep the visual system restrained: no decorative motifs, gradients, cards, icons or extra sections unless they clarify the confirmed content. Do not force a house style for a creator who asked you to choose a direction freely.
 CRITICAL — create a FRESH color theme for THIS craft on the spot (never reuse a default):
 every hex must be a 6-digit color like "#2f7d3a". Text must stay readable: ink on paper and
 brand on paper need strong contrast. Examples of fitting directions (adapt, don't copy):
@@ -107,7 +109,7 @@ function estimateCost(provider, tokensIn, tokensOut) {
 }
 
 const userBrief = (profile, prompt, stylePreference = '') =>
-  `Name: ${profile.name}\nCraft: ${profile.craft}\nStyle preference: ${stylePreference || 'none provided; create a fresh theme fitted to the craft and projects'}\nBrief: ${prompt}`;
+  `Name: ${profile.name}\nCraft: ${profile.craft}\nStyle preference: ${stylePreference || 'none provided; choose a restrained direction fitted to the confirmed content'}\nBrief: ${prompt}`;
 
 async function callAnthropic(prompt, profile, stylePreference) {
   const model = process.env.LLM_MODEL ?? 'claude-haiku-4-5-20251001';
@@ -154,8 +156,15 @@ async function callOpenAI(prompt, profile, stylePreference) {
   };
 }
 
-async function callOpenRouter(prompt, profile, stylePreference) {
+async function callOpenRouter(prompt, profile, stylePreference, assets = []) {
   const model = process.env.LLM_MODEL ?? 'google/gemini-3.7-flash';
+  const content = [{
+    type: 'text',
+    text: `${userBrief(profile, prompt, stylePreference)}\n\nApproved images (use only the exact IDs; never invent paths):\n${assets.map((asset) => `${asset.id}: ${asset.name}`).join('\n') || 'none'}`,
+  }];
+  for (const asset of assets) {
+    content.push({ type: 'image_url', image_url: { url: `data:image/webp;base64,${asset.data.toString('base64')}` } });
+  }
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -166,11 +175,12 @@ async function callOpenRouter(prompt, profile, stylePreference) {
     },
     body: JSON.stringify({
       model,
+      max_tokens: 1800,
       usage: { include: true },
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYSTEM },
-        { role: 'user', content: userBrief(profile, prompt, stylePreference) },
+        { role: 'user', content: assets.length ? content : content[0].text },
       ],
     }),
   });
@@ -214,7 +224,7 @@ function localFallback(prompt, profile, stylePreference) {
   };
 }
 
-export async function generateSite({ name, craft, prompt, theme, motif, stylePreference = '', kind = 'v1' }) {
+export async function generateSite({ name, craft, prompt, theme, motif, stylePreference = '', kind = 'v1', assets = [], briefProfile = null }) {
   const provider = (process.env.LLM_PROVIDER ?? '').toLowerCase();
   const hasKey = Boolean(process.env.LLM_API_KEY);
 
@@ -222,7 +232,7 @@ export async function generateSite({ name, craft, prompt, theme, motif, stylePre
       const result = provider === 'anthropic'
         ? await callAnthropic(prompt, { name, craft }, stylePreference)
         : provider === 'openrouter'
-          ? await callOpenRouter(prompt, { name, craft }, stylePreference)
+          ? await callOpenRouter(prompt, { name, craft }, stylePreference, assets)
           : await callOpenAI(prompt, { name, craft }, stylePreference);
       const { text, in: tokensIn, out: tokensOut } = result;
       const parsed = JSON.parse(text);
@@ -230,7 +240,7 @@ export async function generateSite({ name, craft, prompt, theme, motif, stylePre
         throw new Error('bad shape');
       }
       const explicitlyChangesStyle = /\b(?:palette|theme|th[eè]me|motif|dark|sombre|light|clair|color|colour|couleur|bright|style|couleurs?)\b/i.test(`${prompt} ${stylePreference}`);
-      const hasPreference = stylePreference.trim() !== '' || explicitlyChangesStyle;
+      const hasPreference = stylePreference.trim() !== '' || explicitlyChangesStyle || Boolean(briefProfile?.visual?.preference);
       const trade = styleForCraft(craft);
       const fallbackTheme = trade?.theme ?? FALLBACK_THEMES.paper;
       const fallbackMotif = trade?.motif ?? 'cercles';
@@ -243,7 +253,7 @@ export async function generateSite({ name, craft, prompt, theme, motif, stylePre
           : {};
       let chosenTheme;
       let chosenMotif;
-      if (kind === 'v1' && trade && !hasPreference) {
+      if (kind === 'v1' && trade && !hasPreference && !briefProfile) {
         chosenTheme = { ...trade.theme, ...freshArt(parsed.art) };
         chosenMotif = trade.motif;
       } else if (kind === 'v1' || explicitlyChangesStyle) {
@@ -253,27 +263,62 @@ export async function generateSite({ name, craft, prompt, theme, motif, stylePre
         chosenTheme = isReadableTheme(theme) ? theme : fallbackTheme;
         chosenMotif = motif ?? fallbackMotif;
       }
-      const projects = parsed.projects.slice(0, 6).map((p, i) => ({
-        title: String(p.title ?? `Project ${i + 1}`),
-        role: String(p.role ?? craft),
-        years: String(p.years ?? '2025'),
-        summary: String(p.summary ?? '').slice(0, 200),
-        frTitle: String(p.fr?.title ?? p.title ?? `Projet ${i + 1}`),
-        frRole: String(p.fr?.role ?? p.role ?? craft),
-        frSummary: String(p.fr?.summary ?? p.summary ?? '').slice(0, 200),
-        links: [],
-        featured: true,
-        order: i + 1,
-      }));
+      const validAssetIds = new Set(assets.map((asset) => asset.id));
+      const confirmedProjects = briefProfile?.projects ?? [];
+      const useConfirmedProjects = kind === 'v1' && Boolean(briefProfile);
+      const sourceProjects = useConfirmedProjects
+        ? confirmedProjects
+        : (kind === 'v1' && briefProfile?.noProjectsYet ? [] : parsed.projects);
+      const projects = sourceProjects.slice(0, 6).map((p, i) => {
+        const generated = parsed.projects[i] ?? {};
+        const title = String(p.title ?? generated.title ?? `Project ${i + 1}`);
+        const role = String(p.role ?? generated.role ?? craft);
+        const years = String(p.years ?? generated.years ?? '');
+        const isConfirmedProject = useConfirmedProjects && confirmedProjects.length > 0;
+        return {
+          title,
+          role,
+          years,
+          summary: String(isConfirmedProject ? p.summary ?? '' : generated.summary ?? '').slice(0, 200),
+          frTitle: String(generated.fr?.title ?? p.title ?? title),
+          frRole: String(generated.fr?.role ?? p.role ?? role),
+          frSummary: String(generated.fr?.summary ?? p.summary ?? generated.summary ?? '').slice(0, 200),
+          links: p.url ? [{ label: 'Voir le projet', url: p.url }] : [],
+          assetId: validAssetIds.has(String(p.assetId ?? p.assetIds?.[0] ?? generated.assetId ?? ''))
+            ? String(p.assetId ?? p.assetIds?.[0] ?? generated.assetId)
+            : '',
+          imageAlt: String(generated.imageAlt ?? p.title ?? title).slice(0, 180),
+          featured: true,
+          order: i + 1,
+        };
+      });
+      const visualProjectCount = projects.filter((project) => project.assetId).length;
+      const explicitlyRequestsGallery = /\b(?:gallery|galerie|cartes|tuiles)\b/i.test(prompt);
+      const explicitlyRequestsEditorial = /\b(?:sans cartes|pas de cartes|liste éditoriale|editorial|éditorial)\b/i.test(prompt);
+      const projectPresentation = kind === 'edit'
+        ? explicitlyRequestsGallery && visualProjectCount > 1
+          ? 'gallery'
+          : explicitlyRequestsEditorial
+            ? 'editorial'
+            : profile.projectPresentation ?? 'editorial'
+        : briefProfile?.layout?.cardsJustified === true
+          && parsed.projectPresentation === 'gallery'
+          && visualProjectCount > 1
+          ? 'gallery'
+          : 'editorial';
       const costEur = provider === 'openrouter' && result.providerCostEur > 0
         ? result.providerCostEur
         : estimateCost(provider, tokensIn, tokensOut);
       return {
         site: {
           tagline: String(parsed.tagline).slice(0, 200),
-          bio: String(parsed.bio).slice(0, 200),
+          bio: String(kind === 'v1' ? briefProfile?.bio || parsed.bio : parsed.bio).slice(0, 200),
           theme: chosenTheme,
           motif: chosenMotif,
+          projectPresentation,
+          experiences: kind === 'v1' ? briefProfile?.experiences ?? [] : profile.experiences ?? [],
+          articles: kind === 'v1' ? briefProfile?.articles ?? [] : profile.articles ?? [],
+          contact: kind === 'v1' ? briefProfile?.contact ?? {} : profile.briefProfile?.contact ?? {},
           designDirection: String(parsed.designDirection ?? stylePreference ?? 'A tailored editorial direction based on the creator’s craft and projects.').slice(0, 160),
           fr: {
             tagline: String(parsed.fr?.tagline ?? parsed.tagline).slice(0, 200),
@@ -290,5 +335,39 @@ export async function generateSite({ name, craft, prompt, theme, motif, stylePre
   if (provider && hasKey) throw new Error(`Unsupported LLM provider: ${provider}`);
   const fb = localFallback(prompt, { name, craft }, stylePreference);
   const fbFallback = styleForCraft(craft);
-  return { site: { theme: theme ?? fbFallback?.theme ?? FALLBACK_THEMES.paper, motif: motif ?? fbFallback?.motif ?? 'cercles', ...fb.site }, projects: fb.projects, usage: fb.usage };
+  const assetIds = new Set(assets.map((asset) => asset.id));
+  const fallbackProjects = briefProfile
+    ? (briefProfile.projects ?? []).slice(0, 6).map((project, index) => ({
+      title: project.title,
+      role: project.role || craft,
+      years: project.years ?? '',
+      summary: project.summary ?? '',
+      frTitle: project.title,
+      frRole: project.role || craft,
+      frSummary: project.summary ?? '',
+      links: project.url ? [{ label: 'Voir le projet', url: project.url }] : [],
+      assetId: (project.assetIds ?? []).find((id) => assetIds.has(id)) ?? '',
+      imageAlt: assets.find((asset) => asset.id === (project.assetIds ?? [])[0])?.name ?? project.title,
+      featured: true,
+      order: index + 1,
+    }))
+    : fb.projects.map((project, index) => ({
+      ...project,
+      assetId: assets[index]?.id ?? '',
+      imageAlt: assets[index]?.name ?? project.title,
+    }));
+  const visualProjectCount = fallbackProjects.filter((project) => project.assetId).length;
+  return {
+    site: {
+      theme: theme ?? fbFallback?.theme ?? FALLBACK_THEMES.paper,
+      motif: motif ?? fbFallback?.motif ?? 'cercles',
+      projectPresentation: visualProjectCount > 1 && briefProfile?.layout?.cardsJustified === true ? 'gallery' : 'editorial',
+      experiences: briefProfile?.experiences ?? [],
+      articles: briefProfile?.articles ?? [],
+      contact: briefProfile?.contact ?? {},
+      ...fb.site,
+    },
+    projects: fallbackProjects,
+    usage: fb.usage,
+  };
 }

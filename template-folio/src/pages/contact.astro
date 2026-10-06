@@ -3,12 +3,13 @@ import Base from '../layouts/Base.astro';
 import site from '../data/site.json';
 import { t } from '../i18n/ui';
 const hasEmail = Boolean(site.email && !site.email.endsWith('example.com'));
+const contactCta = (site as unknown as { contactCta?: string }).contactCta;
 ---
 
 <Base title={`${t('en', 'contact')} — ${site.name}`} description={`${t('en', 'emailMe')} ${site.name}`} lang="en">
   <section class="max-w-4xl">
     <p class="eyebrow mb-5">{site.craft}</p>
-    <h1 class="page-title max-w-3xl">Have a project in mind?</h1>
+    <h1 class="page-title max-w-3xl">{contactCta || 'Have a project in mind?'}</h1>
     <p class="mt-5 max-w-xl text-lg leading-relaxed text-muted">{hasEmail ? 'Tell me what you’re making. I’m always open to a thoughtful new collaboration.' : t('en', 'noContact')}</p>
     {hasEmail && <a class="mt-10 inline-flex min-h-14 items-center gap-3 bg-brand px-6 py-3 font-semibold text-white no-underline transition-colors hover:bg-brand-strong focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-brand" href={`mailto:${site.email}`}>
       {site.email}<span aria-hidden="true">↗</span>
