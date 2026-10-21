@@ -69,7 +69,7 @@ présente plutôt « Il me manque encore… » avec une phrase concrète.
 - Au maximum un appel évaluateur et un appel interviewer par tour. Si le brief
   est prêt, l'appel interviewer est remplacé par un message de confirmation.
 - OpenRouter utilise le modèle configuré (`LLM_MODEL`, pilote
-  `google/gemini-3.7-flash`). Le brief a un budget cumulé de **0,02 €**, un
+  `xiaomi/mimo-v2.6-flash`). Le brief a un budget cumulé de **0,02 €**, un
   maximum de sortie et une réserve conservatrice par appel. Coût provider et
   budget consommé sont journalisés séparément ; un appel échoué réserve aussi
   une petite marge pour empêcher un dépassement par répétition.

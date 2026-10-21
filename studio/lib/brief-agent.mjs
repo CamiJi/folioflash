@@ -211,7 +211,7 @@ async function callOpenRouter({ system, messages, images = [], maxTokens, spentE
   if (spentEur + MAX_ESTIMATED_CALL_COST_EUR > BRIEF_COST_LIMIT_EUR) {
     throw new Error('brief_cost_limit');
   }
-  const model = process.env.BRIEF_MODEL ?? process.env.LLM_MODEL ?? 'google/gemini-3.7-flash';
+  const model = process.env.BRIEF_MODEL ?? process.env.LLM_MODEL ?? 'xiaomi/mimo-v2.6-flash';
   const last = messages.at(-1);
   const content = [{ type: 'text', text: asString(last?.content, MAX_CONTEXT_CHARS) }];
   for (const image of images) {

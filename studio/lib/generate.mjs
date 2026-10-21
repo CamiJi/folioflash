@@ -157,7 +157,7 @@ async function callOpenAI(prompt, profile, stylePreference) {
 }
 
 async function callOpenRouter(prompt, profile, stylePreference, assets = []) {
-  const model = process.env.LLM_MODEL ?? 'google/gemini-3.7-flash';
+  const model = process.env.LLM_MODEL ?? 'xiaomi/mimo-v2.6-flash';
   const baseUrl = (process.env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1').replace(/\/$/, '');
   const content = [{
     type: 'text',
